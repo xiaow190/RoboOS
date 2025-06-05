@@ -193,6 +193,7 @@ class MultiStepAgent:
     def __init__(
         self,
         tools: List[Tool],
+        tools_path: str,
         model: Callable[[List[Dict[str, str]]], ChatMessage],
         prompt_templates: Optional[PromptTemplates] = None,
         max_steps: int = 20,
@@ -209,6 +210,8 @@ class MultiStepAgent:
         log_file: Optional[str] = None,
     ):
         self.agent_name = self.__class__.__name__
+        self.tools = tools
+        self.tools_path = tools_path
         self.model = model
         self.prompt_templates = prompt_templates or EMPTY_PROMPT_TEMPLATES
         self.max_steps = max_steps
@@ -222,7 +225,6 @@ class MultiStepAgent:
         self.final_answer_checks = final_answer_checks
 
         self._setup_managed_agents(managed_agents)
-        self._setup_tools(tools, add_base_tools)
         self._validate_tools_and_managed_agents(tools, managed_agents)
 
         self.system_prompt = self.initialize_system_prompt()
@@ -259,7 +261,7 @@ class MultiStepAgent:
         self.tools.setdefault("final_answer", FinalAnswerTool())
 
     def _validate_tools_and_managed_agents(self, tools, managed_agents):
-        tool_and_managed_agent_names = [tool.name for tool in tools]
+        tool_and_managed_agent_names = [tool['function']['name'] for tool in tools if isinstance(tool, dict) and 'function' in tool]
         if managed_agents is not None:
             tool_and_managed_agent_names += [agent.name for agent in managed_agents]
         if self.name:
@@ -454,7 +456,6 @@ You have been provided with these additional arguments, that you can access usin
                         self.prompt_templates["planning"]["initial_plan"],
                         variables={
                             "task": task,
-                            "tools": self.tools,
                             "managed_agents": self.managed_agents,
                             "answer_facts": facts_message.content,
                         },
@@ -517,7 +518,6 @@ You have been provided with these additional arguments, that you can access usin
                         self.prompt_templates["planning"]["update_plan_post_messages"],
                         variables={
                             "task": task,
-                            "tools": self.tools,
                             "managed_agents": self.managed_agents,
                             "facts_update": facts_message.content,
                             "remaining_steps": (self.max_steps - step),
@@ -590,7 +590,7 @@ You have been provided with these additional arguments, that you can access usin
         that can be used as input to the LLM. Adds a number of keywords (such as PLAN, error, etc) to help
         the LLM.
         """
-        messages = self.memory.system_prompt.to_messages(summary_mode=summary_mode)
+        messages = []
         for memory_step in self.memory.steps:
             messages.extend(memory_step.to_messages(summary_mode=summary_mode))
         return messages
@@ -631,17 +631,7 @@ You have been provided with these additional arguments, that you can access usin
         Returns:
             `str`: Final answer to the task.
         """
-        messages = [
-            {
-                "role": MessageRole.SYSTEM,
-                "content": [
-                    {
-                        "type": "text",
-                        "text": self.prompt_templates["final_answer"]["pre_messages"],
-                    }
-                ],
-            }
-        ]
+        messages = []
         if images:
             messages[0]["content"].append({"type": "image"})
         messages += self.write_memory_to_messages()[1:]
@@ -676,47 +666,40 @@ You have been provided with these additional arguments, that you can access usin
             tool_name (`str`): Name of the Tool to execute (should be one from self.tools).
             arguments (Dict[str, str]): Arguments passed to the Tool.
         """
-        available_tools = {**self.tools, **self.managed_agents}
+        tools_dict = {}
+        for tool_def in self.tools:  # self.tools is in the format you provided
+            tool_name = tool_def['function']['name']
+            tool_desc = tool_def['function']['description']
+            
+            # Extract inputs from input_schema
+            inputs = {}
+            for param, props in tool_def['input_schema']['properties'].items():
+                inputs[param] = props['type']  # or use props.get('description', props['type'])
+            
+            tools_dict[tool_def['function']['name']] = {
+                'description': tool_def['function']['description'],
+                'inputs': inputs,
+                'output_type': None  # Set this appropriately for your tools
+            }
+        available_tools = {**tools_dict, **self.managed_agents}
         if tool_name not in available_tools:
             error_msg = f"Unknown tool {tool_name}, should be instead one of {list(available_tools.keys())}."
             raise AgentExecutionError(error_msg, self.logger)
+        
+        import importlib.util
+        from pathlib import Path
+        
+        file_path = Path(self.tools_path).absolute()
+        module_name = file_path.stem
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        func = getattr(module, tool_name)
+        result = func(**arguments)
+            
+        return result
 
-        try:
-            if isinstance(arguments, str):
-                if tool_name in self.managed_agents:
-                    observation = available_tools[tool_name].__call__(arguments)
-                else:
-                    observation = available_tools[tool_name].__call__(
-                        arguments, sanitize_inputs_outputs=True
-                    )
-            elif isinstance(arguments, dict):
-                for key, value in arguments.items():
-                    if isinstance(value, str) and value in self.state:
-                        arguments[key] = self.state[value]
-                if tool_name in self.managed_agents:
-                    observation = available_tools[tool_name].__call__(**arguments)
-                else:
-                    observation = available_tools[tool_name].__call__(
-                        **arguments, sanitize_inputs_outputs=True
-                    )
-            else:
-                error_msg = f"Arguments passed to tool should be a dict or string: got a {type(arguments)}."
-                raise AgentExecutionError(error_msg, self.logger)
-            return observation
-        except Exception as e:
-            if tool_name in self.tools:
-                tool = self.tools[tool_name]
-                error_msg = (
-                    f"Error when executing tool {tool_name} with arguments {arguments}: {type(e).__name__}: {e}\nYou should only use this tool with a correct input.\n"
-                    f"As a reminder, this tool's description is the following: '{tool.description}'.\nIt takes inputs: {tool.inputs} and returns output type {tool.output_type}"
-                )
-                raise AgentExecutionError(error_msg, self.logger)
-            elif tool_name in self.managed_agents:
-                error_msg = (
-                    f"Error in calling team member: {e}\nYou should only ask this team member with a correct request.\n"
-                    f"As a reminder, this team member's description is the following:\n{available_tools[tool_name]}"
-                )
-                raise AgentExecutionError(error_msg, self.logger)
 
     def step(self, memory_step: ActionStep) -> Union[None, Any]:
         """To be implemented in children classes. Should return either None if the step is not final."""
@@ -876,7 +859,6 @@ You have been provided with these additional arguments, that you can access usin
                 "agent_name": agent_name,
                 "class_name": class_name,
                 "agent_dict": agent_dict,
-                "tools": self.tools,
                 "managed_agents": self.managed_agents,
                 "managed_agent_relative_path": managed_agent_relative_path,
             }
@@ -1121,6 +1103,7 @@ class ToolCallingAgent(MultiStepAgent):
     def __init__(
         self,
         tools: List[Tool],
+        tools_path: str,
         model: Callable[[List[Dict[str, str]]], ChatMessage],
         prompt_templates: Optional[PromptTemplates] = None,
         planning_interval: Optional[int] = None,
@@ -1128,28 +1111,17 @@ class ToolCallingAgent(MultiStepAgent):
         robot_name: str = None,
         **kwargs,
     ):
-        prompt_templates = prompt_templates or yaml.safe_load(
-            importlib.resources.files("prompts")
-            .joinpath("toolcalling_agent.yaml")
-            .read_text()
-        )
         self.tool_call = []
         self.communicator = communicator
         self.robot_name = robot_name
         super().__init__(
             tools=tools,
+            tools_path=tools_path,
             model=model,
             prompt_templates=prompt_templates,
             planning_interval=planning_interval,
             **kwargs,
         )
-
-    def initialize_system_prompt(self) -> str:
-        system_prompt = populate_template(
-            self.prompt_templates["system_prompt"],
-            variables={"tools": self.tools, "managed_agents": self.managed_agents},
-        )
-        return system_prompt
 
     def step(self, memory_step: ActionStep) -> Union[None, Any]:
         """
@@ -1166,7 +1138,7 @@ class ToolCallingAgent(MultiStepAgent):
         try:
             model_message: ChatMessage = self.model(
                 memory_messages,
-                tools_to_call_from=list(self.tools.values()),
+                tools=self.tools,
                 stop_sequences=["Observation:"],
             )
             memory_step.model_output_message = model_message
@@ -1182,12 +1154,15 @@ class ToolCallingAgent(MultiStepAgent):
             title="Output message of the LLM:",
             level=LogLevel.DEBUG,
         )
-
         if model_message.tool_calls is None or len(model_message.tool_calls) == 0:
-            raise AgentParsingError(
-                "Model did not call any tools. Call `final_answer` tool to return a final answer.",
-                self.logger,
+            final_answer = model_message.content
+            self.logger.log(
+                Text(f"Final answer: {final_answer}", style=f"bold {YELLOW_HEX}"),
+                level=LogLevel.INFO,
             )
+
+            memory_step.action_output = final_answer
+            return final_answer
 
         tool_call = model_message.tool_calls[0]
         tool_name, tool_call_id = tool_call.function.name, tool_call.id
