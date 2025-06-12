@@ -1,0 +1,117 @@
+import psutil
+import traceback
+
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask_socketio import SocketIO
+from agents.agent import GlobalAgent
+
+
+app = Flask(__name__, static_folder="assets")
+socketio = SocketIO(app)
+
+
+master_agent = GlobalAgent(config_path="config.yaml")
+
+
+def send_text_to_forntend(text):
+    socketio.emit("text_update", {"data": text}, namespace="/")
+    
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/js/<path:filename>")
+def js_file(filename):
+    return send_from_directory("templates/js", filename)
+    
+
+@app.route("/system_status", methods=["GET"])
+def system_status():
+    """
+    Get the system status.
+
+    Returns:
+        JSON response with system status
+    """
+    cpu_load = psutil.cpu_percent(interval=1)
+
+    memory = psutil.virtual_memory()
+    memory_usage = memory.percent
+
+    return jsonify(
+        {
+            "cpu_load": round(cpu_load, 1),  
+            "memory_usage": round(memory_usage, 1),
+        }
+    )
+
+
+@app.route("/robot_status", methods=["GET"])
+def robot_status():
+    """
+    Get the status of all robots.
+
+    Returns:
+        JSON response with robot status
+    """
+    try:
+        robots = master_agent.communicator.gat_all_values("ROBOT_INFO_*")
+        registered_robots = master_agent.communicator.gat_all_values("ROBOT_REGISTER_*")
+        for registered_robot in registered_robots:
+            robot_name = registered_robot.get("robot_name")
+            registered_robot["robot_state"] = "offline"
+            for robot in robots:
+                if robot.get("robot_name") == robot_name:
+                    registered_robot["robot_state"] = robot.get("robot_state")
+                    break
+        return jsonify(registered_robots), 200
+    except Exception as e:
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+
+@app.route("/publish_task", methods=["POST", "GET"])
+def publish_task():
+    """
+    Publish a task to the Redis channel.
+
+    Request JSON format:
+    {
+        "task": "task_content"  # The task to be published
+    }
+
+    Returns:
+        JSON response with status or error message
+    """
+    if request.method == "GET":
+        return jsonify({"statis": "success"}), 200
+    try:
+        data = request.get_json()
+        if not data or "task" not in data:
+            return jsonify({"error": "Invalid request - 'task' field required"}), 400
+        if not isinstance(data["task"], list):
+            data["task"] = [data["task"]]
+            
+        task_id = data.get("task_id")
+        for task in data["task"]:
+            if not isinstance(task, str):
+                return jsonify({"error": "Invalid task format - must be a string"}), 400
+            subtask_list = master_agent.publish_global_task(data["task"], task_id)
+
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Task published successfully",
+                "data": subtask_list
+            }
+        ), 200
+
+    except Exception as e:
+        print(traceback.print_exc())
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+
+if __name__ == "__main__":
+    # Run the Flask app
+    app.run(host="0.0.0.0", port=5000, debug=True)
