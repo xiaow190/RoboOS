@@ -23,6 +23,7 @@ import importlib.metadata
 import importlib.util
 import inspect
 import json
+import yaml
 import os
 import re
 import types
@@ -158,196 +159,6 @@ class ImportFinder(ast.NodeVisitor):
             self.packages.add(base_package)
 
 
-def get_method_source(method):
-    """Get source code for a method, including bound methods."""
-    if isinstance(method, types.MethodType):
-        method = method.__func__
-    return get_source(method)
-
-
-def is_same_method(method1, method2):
-    """Compare two methods by their source code."""
-    try:
-        source1 = get_method_source(method1)
-        source2 = get_method_source(method2)
-
-        # Remove method decorators if any
-        source1 = "\n".join(
-            line for line in source1.split("\n") if not line.strip().startswith("@")
-        )
-        source2 = "\n".join(
-            line for line in source2.split("\n") if not line.strip().startswith("@")
-        )
-
-        return source1 == source2
-    except (TypeError, OSError):
-        return False
-
-
-def is_same_item(item1, item2):
-    """Compare two class items (methods or attributes) for equality."""
-    if callable(item1) and callable(item2):
-        return is_same_method(item1, item2)
-    else:
-        return item1 == item2
-
-
-def instance_to_source(instance, base_cls=None):
-    """Convert an instance to its class source code representation."""
-    cls = instance.__class__
-    class_name = cls.__name__
-
-    # Start building class lines
-    class_lines = []
-    if base_cls:
-        class_lines.append(f"class {class_name}({base_cls.__name__}):")
-    else:
-        class_lines.append(f"class {class_name}:")
-
-    # Add docstring if it exists and differs from base
-    if cls.__doc__ and (not base_cls or cls.__doc__ != base_cls.__doc__):
-        class_lines.append(f'    """{cls.__doc__}"""')
-
-    # Add class-level attributes
-    class_attrs = {
-        name: value
-        for name, value in cls.__dict__.items()
-        if not name.startswith("__")
-        and not callable(value)
-        and not (
-            base_cls and hasattr(base_cls, name) and getattr(base_cls, name) == value
-        )
-    }
-
-    for name, value in class_attrs.items():
-        if isinstance(value, str):
-            # multiline value
-            if "\n" in value:
-                escaped_value = value.replace('"""', r"\"\"\"")  # Escape triple quotes
-                class_lines.append(f'    {name} = """{escaped_value}"""')
-            else:
-                class_lines.append(f"    {name} = {json.dumps(value)}")
-        else:
-            class_lines.append(f"    {name} = {repr(value)}")
-
-    if class_attrs:
-        class_lines.append("")
-
-    # Add methods
-    methods = {
-        name: func
-        for name, func in cls.__dict__.items()
-        if callable(func)
-        and (
-            not base_cls
-            or not hasattr(base_cls, name)
-            or (
-                isinstance(func, staticmethod)
-                or isinstance(func, classmethod)
-                or (getattr(base_cls, name).__code__.co_code != func.__code__.co_code)
-            )
-        )
-    }
-
-    for name, method in methods.items():
-        method_source = get_source(method)
-        # Clean up the indentation
-        method_lines = method_source.split("\n")
-        first_line = method_lines[0]
-        indent = len(first_line) - len(first_line.lstrip())
-        method_lines = [line[indent:] for line in method_lines]
-        method_source = "\n".join(
-            ["    " + line if line.strip() else line for line in method_lines]
-        )
-        class_lines.append(method_source)
-        class_lines.append("")
-
-    # Find required imports using ImportFinder
-    import_finder = ImportFinder()
-    import_finder.visit(ast.parse("\n".join(class_lines)))
-    required_imports = import_finder.packages
-
-    # Build final code with imports
-    final_lines = []
-
-    # Add base class import if needed
-    if base_cls:
-        final_lines.append(f"from {base_cls.__module__} import {base_cls.__name__}")
-
-    # Add discovered imports
-    for package in required_imports:
-        final_lines.append(f"import {package}")
-
-    if final_lines:  # Add empty line after imports
-        final_lines.append("")
-
-    # Add the class code
-    final_lines.extend(class_lines)
-
-    return "\n".join(final_lines)
-
-
-def get_source(obj) -> str:
-    """Get the source code of a class or callable object (e.g.: function, method).
-    First attempts to get the source code using `inspect.getsource`.
-    In a dynamic environment (e.g.: Jupyter, IPython), if this fails,
-    falls back to retrieving the source code from the current interactive shell session.
-
-    Args:
-        obj: A class or callable object (e.g.: function, method)
-
-    Returns:
-        str: The source code of the object, dedented and stripped
-
-    Raises:
-        TypeError: If object is not a class or callable
-        OSError: If source code cannot be retrieved from any source
-        ValueError: If source cannot be found in IPython history
-
-    Note:
-        TODO: handle Python standard REPL
-    """
-    if not (isinstance(obj, type) or callable(obj)):
-        raise TypeError(f"Expected class or callable, got {type(obj)}")
-
-    inspect_error = None
-    try:
-        # Handle dynamically created classes
-        source = obj.__source if hasattr(obj, "__source") else inspect.getsource(obj)
-        return dedent(source).strip()
-    except OSError as e:
-        # let's keep track of the exception to raise it if all further methods fail
-        inspect_error = e
-    try:
-        import IPython
-
-        shell = IPython.get_ipython()
-        if not shell:
-            raise ImportError("No active IPython shell found")
-        all_cells = "\n".join(shell.user_ns.get("In", [])).strip()
-        if not all_cells:
-            raise ValueError("No code cells found in IPython session")
-
-        tree = ast.parse(all_cells)
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, (ast.ClassDef, ast.FunctionDef))
-                and node.name == obj.__name__
-            ):
-                return dedent(
-                    "\n".join(all_cells.split("\n")[node.lineno - 1 : node.end_lineno])
-                ).strip()
-        raise ValueError(
-            f"Could not find source code for {obj.__name__} in IPython history"
-        )
-    except ImportError:
-        # IPython is not available, let's just raise the original inspect error
-        raise inspect_error
-    except ValueError as e:
-        # IPython is available but we couldn't find the source code, let's raise the error
-        raise e from inspect_error
-
-
 def encode_image_base64(image):
     buffered = BytesIO()
     image.save(buffered, format="PNG")
@@ -356,3 +167,15 @@ def encode_image_base64(image):
 
 def make_image_url(base64_image):
     return f"data:image/png;base64,{base64_image}"
+
+
+class Config:
+    @classmethod
+    def load_config(cls, config_path="config.yaml"):
+        """Initialize configuration"""
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+        return config
+
+
+config = Config.load_config()

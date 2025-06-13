@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import yaml
 import threading
 import time
 from contextlib import AsyncExitStack
@@ -13,13 +14,14 @@ from agents.models import AzureOpenAIServerModel, OpenAIServerModel
 from agents.slaver_agent import ToolCallingAgent
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from utils import communicator, config, convert_yaml_to_json
+from flag_scale.flagscale.agent.communication import Communicator
+from tools.utils import config
 
 
 class RobotManager:
     """Centralized robot management system with task handling and communication"""
 
-    def __init__(self, communicator):
+    def __init__(self):
         # Initialize session and client objects
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
@@ -30,13 +32,23 @@ class RobotManager:
             model_initializer: AI model initialization function
             config: System configuration dictionary
         """
-        self.communicator = communicator
+        self.communicator = self._init_coummunicator()
         self.heartbeat_interval = 60
         self.lock = threading.Lock()
         self.model = self._gat_model_info_from_config()
         self.tools = None
         self.tools_path = None
         self._prewarm_model()
+
+    def _init_coummunicator(self):
+        return  Communicator(
+            host=config["communicator"]["HOST"],
+            port=config["communicator"]["PORT"],
+            db=config["communicator"]["DB"],
+            clear=config["communicator"]["CLEAR"],
+            password=config["communicator"]["PASSWORD"],
+        )
+         
 
     def _prewarm_model(self):
         """Pre-warm the model to avoid atexit-related issues"""
@@ -94,7 +106,7 @@ class RobotManager:
             model=self.model,
             log_file="./.log/agent.log",
             robot_name=self.robot_profile["robot_name"],
-            communicator=self.communicator,
+            communicator=self.communicator
         )
         result = agent.run(task=task_data["task"])
         self._send_result(
@@ -132,8 +144,7 @@ class RobotManager:
         Args:
             robot_tools: Path to the robot tools script (.py)
         """
-        self.robot_profile = convert_yaml_to_json(config["profile"]["PATH"])
-
+        self.robot_profile = yaml.safe_load(open(config["profile"]["PATH"], 'r', encoding='utf-8'))
         robot_tools = self.robot_profile["robot_tools"]
         self.tools_path = robot_tools
         robot_tools_mcp = (robot_tools.split('.'))[0]+"_mcp.py"
@@ -209,7 +220,7 @@ class RobotManager:
 
 
 async def main():
-    robot_manager = RobotManager(communicator)
+    robot_manager = RobotManager()
     try:
         print("connecting to robot...")
         await robot_manager.connect_to_robot()

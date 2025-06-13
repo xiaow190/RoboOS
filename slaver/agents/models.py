@@ -137,7 +137,6 @@ tool_role_conversions = {
     MessageRole.TOOL_RESPONSE: MessageRole.USER,
 }
 
-
 def get_clean_message_list(
     message_list: List[Dict[str, str]],
     role_conversions: Dict[MessageRole, MessageRole] = {},
@@ -204,7 +203,6 @@ def get_clean_message_list(
                 content = message["content"]
             output_message_list.append({"role": message["role"], "content": content})
     return output_message_list
-
 
 class Model:
     def __init__(
@@ -328,23 +326,6 @@ class Model:
                 )
         return model_dictionary
 
-    @classmethod
-    def from_dict(cls, model_dictionary: Dict[str, Any]) -> "Model":
-        model_instance = cls(
-            **{
-                k: v
-                for k, v in model_dictionary.items()
-                if k not in ["last_input_token_count", "last_output_token_count"]
-            }
-        )
-        model_instance.last_input_token_count = model_dictionary.pop(
-            "last_input_token_count", None
-        )
-        model_instance.last_output_token_count = model_dictionary.pop(
-            "last_output_token_count", None
-        )
-        return model_instance
-
 class ApiModel(Model):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -448,7 +429,6 @@ class OpenAIServerModel(ApiModel):
         )
         first_message.raw = response
         return self.postprocess_message(first_message)
-
 
 class AzureOpenAIServerModel(OpenAIServerModel):
     """This model connects to an Azure OpenAI deployment.

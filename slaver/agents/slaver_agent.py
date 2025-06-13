@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
-import importlib
-import importlib.resources
 import inspect
 import json
-import re
 import time
 from collections import deque
 from logging import getLogger
@@ -15,23 +12,14 @@ from typing import (
     Generator,
     List,
     Optional,
-    Set,
-    Tuple,
-    TypedDict,
     Union,
 )
 
-import yaml
-from jinja2 import StrictUndefined, Template
 from rich.panel import Panel
 from rich.text import Text
-
-from tools.agent_types import AgentAudio, AgentImage, handle_agent_output_types
 from tools.memory import (
     ActionStep,
     AgentMemory,
-    PlanningStep,
-    SystemPromptStep,
     TaskStep,
     ToolCall,
 )
@@ -55,93 +43,6 @@ from tools.utils import (
 
 logger = getLogger(__name__)
 
-def populate_template(template: str, variables: Dict[str, Any]) -> str:
-    compiled_template = Template(template, undefined=StrictUndefined)
-    try:
-        return compiled_template.render(**variables)
-    except Exception as e:
-        raise Exception(
-            f"Error during jinja template rendering: {type(e).__name__}: {e}"
-        )
-
-
-class PlanningPromptTemplate(TypedDict):
-    """
-    Prompt templates for the planning step.
-
-    Args:
-        initial_facts (`str`): Initial facts prompt.
-        initial_plan (`str`): Initial plan prompt.
-        update_facts_pre_messages (`str`): Update facts pre-messages prompt.
-        update_facts_post_messages (`str`): Update facts post-messages prompt.
-        update_plan_pre_messages (`str`): Update plan pre-messages prompt.
-        update_plan_post_messages (`str`): Update plan post-messages prompt.
-    """
-
-    initial_facts: str
-    initial_plan: str
-    update_facts_pre_messages: str
-    update_facts_post_messages: str
-    update_plan_pre_messages: str
-    update_plan_post_messages: str
-
-
-class ManagedAgentPromptTemplate(TypedDict):
-    """
-    Prompt templates for the managed agent.
-
-    Args:
-        task (`str`): Task prompt.
-        report (`str`): Report prompt.
-    """
-
-    task: str
-    report: str
-
-
-class FinalAnswerPromptTemplate(TypedDict):
-    """
-    Prompt templates for the final answer.
-
-    Args:
-        pre_messages (`str`): Pre-messages prompt.
-        post_messages (`str`): Post-messages prompt.
-    """
-
-    pre_messages: str
-    post_messages: str
-
-
-class PromptTemplates(TypedDict):
-    """
-    Prompt templates for the agent.
-
-    Args:
-        system_prompt (`str`): System prompt.
-        planning ([`~agents.PlanningPromptTemplate`]): Planning prompt templates.
-        managed_agent ([`~agents.ManagedAgentPromptTemplate`]): Managed agent prompt templates.
-        final_answer ([`~agents.FinalAnswerPromptTemplate`]): Final answer prompt templates.
-    """
-
-    system_prompt: str
-    planning: PlanningPromptTemplate
-    managed_agent: ManagedAgentPromptTemplate
-    final_answer: FinalAnswerPromptTemplate
-
-
-EMPTY_PROMPT_TEMPLATES = PromptTemplates(
-    system_prompt="",
-    planning=PlanningPromptTemplate(
-        initial_facts="",
-        initial_plan="",
-        update_facts_pre_messages="",
-        update_facts_post_messages="",
-        update_plan_pre_messages="",
-        update_plan_post_messages="",
-    ),
-    managed_agent=ManagedAgentPromptTemplate(task="", report=""),
-    final_answer=FinalAnswerPromptTemplate(pre_messages="", post_messages=""),
-)
 
 class MultiStepAgent:
     """
@@ -151,7 +52,6 @@ class MultiStepAgent:
     Args:
         tools (`list[Tool]`): [`Tool`]s that the agent can use.
         model (`Callable[[list[dict[str, str]]], ChatMessage]`): Model that will generate the agent's actions.
-        prompt_templates ([`~agents.PromptTemplates`], *optional*): Prompt templates.
         max_steps (`int`, default `20`): Maximum number of steps the agent can take to solve the task.
         verbosity_level (`LogLevel`, default `LogLevel.INFO`): Level of verbosity of the agent's logs.
         step_callbacks (`list[Callable]`, *optional*): Callbacks that will be called at each step.
@@ -161,7 +61,7 @@ class MultiStepAgent:
         tools: List[Dict[str, str]],
         tools_path: str,
         model: Callable[[List[Dict[str, str]]], ChatMessage],
-        prompt_templates: Optional[PromptTemplates] = None,
+        # prompt_templates: Optional[PromptTemplates] = None,
         max_steps: int = 20,
         verbosity_level: LogLevel = LogLevel.INFO,
         step_callbacks: Optional[List[Callable]] = None,
@@ -170,20 +70,15 @@ class MultiStepAgent:
         self.tools = tools
         self.tools_path = tools_path
         self.model = model
-        self.prompt_templates = prompt_templates or EMPTY_PROMPT_TEMPLATES
         self.max_steps = max_steps
         self.step_number = 0
         self.state = {}
-        self.system_prompt = self.initialize_system_prompt()
-        self.memory = AgentMemory(self.system_prompt)
+        self.memory = AgentMemory(None)
         self.logger = AgentLogger(level=verbosity_level, log_file=log_file)
         self.monitor = Monitor(self.model, self.logger)
         self.step_callbacks = step_callbacks if step_callbacks is not None else []
         self.step_callbacks.append(self.monitor.update_metrics)  
         
-    def initialize_system_prompt(self):
-        """To be implemented in child classes"""
-        raise NotImplementedError
     
     def run(
         self,
@@ -248,7 +143,7 @@ You have been provided with these additional arguments, that you can access usin
                 observations_images=images,
             )
             try:
-                final_answer = self._execute_step(task, step)
+                final_answer = self.step(step)
 
             except AgentError as e:
                 step.error = e
@@ -261,7 +156,7 @@ You have been provided with these additional arguments, that you can access usin
         if not final_answer:
             final_answer = self._handle_max_steps_reached(task, images, step_start_time)
             yield final_answer
-        yield handle_agent_output_types(final_answer)
+        yield final_answer
                 
     def _handle_max_steps_reached(
         self, task: str, images: List[str], step_start_time: float
@@ -295,17 +190,14 @@ You have been provided with these additional arguments, that you can access usin
         messages = []
         if images:
             messages[0]["content"].append({"type": "image"})
-        messages += self.write_memory_to_messages()[1:]
+        messages += self.write_memory_to_messages()
         messages += [
             {
                 "role": MessageRole.USER,
                 "content": [
                     {
                         "type": "text",
-                        "text": populate_template(
-                            self.prompt_templates["final_answer"]["post_messages"],
-                            variables={"task": task},
-                        ),
+                        "text": task
                     }
                 ],
             }
@@ -316,10 +208,6 @@ You have been provided with these additional arguments, that you can access usin
         except Exception as e:
             return f"Error in generating final LLM output:\n{e}"
     
-    def _execute_step(self, task: str, step: ActionStep) -> Union[None, Any]:
-        
-        self.logger.log_rule(f"Step {self.step_number}", level=LogLevel.INFO)
-        return self.step(step)
 
     def step(self, memory_step: ActionStep) -> Optional[Any]:
         """To be implemented in children classes. Should return either None if the step is not final."""
@@ -351,7 +239,7 @@ You have been provided with these additional arguments, that you can access usin
         that can be used as input to the LLM. Adds a number of keywords (such as PLAN, error, etc) to help
         the LLM.
         """
-        messages = self.memory.system_prompt.to_messages(summary_mode=summary_mode)
+        messages = []
         for memory_step in self.memory.steps:
             messages.extend(memory_step.to_messages(summary_mode=summary_mode))
         return messages
@@ -374,13 +262,10 @@ class ToolCallingAgent(MultiStepAgent):
         tools: List[Dict[str, str]],
         tools_path: str,
         model: Callable[[List[Dict[str, str]]], ChatMessage],
-        prompt_templates: Optional[PromptTemplates] = None,
-        # planning_interval: Optional[int] = None,
         communicator=None,
         robot_name: str = None,
         **kwargs,
     ):
-        prompt_templates = prompt_templates or yaml.safe_load(importlib.resources.files("prompts").joinpath("toolcalling_agent.yaml").read_text())
         self.tool_call = []
         self.communicator = communicator
         self.robot_name = robot_name
@@ -388,36 +273,9 @@ class ToolCallingAgent(MultiStepAgent):
             tools=tools,
             tools_path=tools_path,
             model=model,
-            prompt_templates=prompt_templates,
-            # planning_interval=planning_interval,
             **kwargs,
         )
         
-    def initialize_system_prompt(self) -> str:
-        
-        system_prompt = populate_template(
-            self.prompt_templates["system_prompt"],
-            variables={"tools": self.tools, "managed_agents": {}},
-        )
-        return system_prompt
-
-    def _extract_json(self, input_string):
-        """Extract JSON from a string."""
-        start_marker = "```json"
-        end_marker = "```"
-        try:
-            start_idx = input_string.find(start_marker)
-            end_idx = input_string.find(end_marker, start_idx + len(start_marker))
-            if start_idx == -1 or end_idx == -1:
-                self.logger.log("[WARNING] JSON markers not found in the string.")
-                return None
-            json_str = input_string[start_idx + len(start_marker) : end_idx].strip()
-            return json.loads(json_str)
-        except json.JSONDecodeError as e:
-            self.logger.log(
-                f"[WARNING] JSON cannot be extracted from the string.\n{e}"
-            )
-            return None
 
     def _handle_final_answer(self, tool_arguments: str, memory_step: ActionStep) -> Union[str, None]:
         if isinstance(tool_arguments, dict):
@@ -453,22 +311,13 @@ class ToolCallingAgent(MultiStepAgent):
             ),
             level=LogLevel.INFO,
         )
-        observation = self.execute_tool_call(tool_name, tool_arguments)
-        observation_type = type(observation)
-        if observation_type in [AgentImage, AgentAudio]:
-            observation_name = "image.png" if observation_type == AgentImage else "audio.mp3"
-            # TODO: observation naming could allow for different names of same type
-            self.state[observation_name] = observation
-            updated_information = f"Stored '{observation_name}' in memory."
-        else:
-            updated_information = str(observation).strip()
-            
+        observation = self.execute_tool_call(tool_name, tool_arguments)            
         self.tool_call.append({"tool_name": tool_name, "result": observation})
         self.logger.log(
-            f"Observations: {updated_information.replace('[', '|')}",  # escape potential rich-tag-like components
+            f"Observations: {observation.replace('[', '|')}",  # escape potential rich-tag-like components
             level=LogLevel.INFO,
         )
-        memory_step.observations = updated_information
+        memory_step.observations = str(observation).strip()
         return None
 
 
@@ -477,6 +326,8 @@ class ToolCallingAgent(MultiStepAgent):
         Perform one step in the ReAct framework: the agent thinks, acts, and observes the result.
         Returns None if the step is not final.
         """
+        self.logger.log_rule(f"Step {self.step_number}", level=LogLevel.INFO)
+
         memory_messages = self.write_memory_to_messages()
         self.input_messages = memory_messages
 
@@ -506,24 +357,12 @@ class ToolCallingAgent(MultiStepAgent):
             tool_arguments = tool_call.function.arguments
         else:
             final_answer = model_message.content
-            self.logger.log(
-                Text(f"Final answer: {final_answer}", style=f"bold {YELLOW_HEX}"),
-                level=LogLevel.INFO,
-            )
-            tool_json = self._extract_json(final_answer)
-            if tool_json:
-                tool_name, tool_arguments = tool_json["name"], tool_json["arguments"]
-                tool_call_id = model_message.raw.id 
-            else:
-                memory_step.action_output = final_answer
-                return final_answer
+            tool_arguments = {"answer": final_answer}
+            tool_name = "final_answer"
             
         if tool_name == "final_answer":
             return self._handle_final_answer(tool_arguments, memory_step)
-            
         memory_step.tool_calls = [
             ToolCall(name=tool_name, arguments=tool_arguments, id=tool_call_id)
         ]
         return self._handle_tool_call(tool_name, tool_arguments, memory_step)
-
-            
