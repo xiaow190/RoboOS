@@ -31,7 +31,6 @@ class MultiStepAgent:
     def __init__(
         self,
         tools: List[Dict[str, str]],
-        tools_path: str,
         model: Callable[[List[Dict[str, str]]], ChatMessage],
         model_path: str,
         communicator: Communicator,
@@ -43,7 +42,6 @@ class MultiStepAgent:
         log_file: Optional[str] = None,
     ):
         self.tools = tools
-        self.tools_path = tools_path
         self.model = model
         self.model_path = model_path
         self.communicator = communicator
@@ -131,7 +129,6 @@ class ToolCallingAgent(MultiStepAgent):
     def __init__(
         self,
         tools: List[Dict[str, str]],
-        tools_path: str,
         model: Callable[[List[Dict[str, str]]], ChatMessage],
         model_path: str,
         communicator: Communicator,
@@ -141,7 +138,6 @@ class ToolCallingAgent(MultiStepAgent):
         self.tool_call = []
         super().__init__(
             tools=tools,
-            tools_path=tools_path,
             model=model,
             model_path=model_path,
             communicator=communicator,

@@ -1,14 +1,14 @@
-import copy
 import json
 import os
 import socket
 import subprocess
-import time
 from pathlib import Path
 
 import redis
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from ruamel.yaml import YAML
+
+from utils import recursive_update, split_dot_keys
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -84,20 +84,16 @@ def saveconfig():
 
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
 
-        def recursive_update(yaml_obj, new_values):
-            for key, value in new_values.items():
-                if key in yaml_obj:
-                    if isinstance(value, dict) and isinstance(yaml_obj[key], dict):
-                        recursive_update(yaml_obj[key], value)
-                    elif isinstance(value, list) and isinstance(yaml_obj[key], list):
-                        yaml_obj[key] = copy.deepcopy(value)
-                    else:
-                        yaml_obj[key] = value
 
         with open(file_path, "r", encoding="utf-8") as f:
             yaml_data = yaml.load(f)
 
-        recursive_update(yaml_data, config_data)
+        processed_config = split_dot_keys(config_data)
+
+        print(processed_config)
+
+        yaml_data = recursive_update(yaml_data, processed_config)
+
 
         with open(file_path, "w", encoding="utf-8") as f:
             yaml.dump(yaml_data, f)
