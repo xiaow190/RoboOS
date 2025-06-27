@@ -39,7 +39,7 @@ camera:
   # Path to save camera images
   IMAGE_PATH: "images/"
 
-# Profile Parameters
-profile:
-  # Path to the robot profile file
-  PATH: "robot_tools/robot_profile.yaml"
+# Robot 
+robot:
+  # Path to the robot fold
+  PATH: "demo_robot"

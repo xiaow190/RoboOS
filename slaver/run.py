@@ -52,7 +52,6 @@ class RobotManager:
 
     def _gat_model_info_from_config(self):
         """Initial model"""
-
         candidate = config["model"]["MODEL_DICT"]
         if candidate["CLOUD_MODEL"] in config["model"]["MODEL_SELECT"]:
             if candidate["CLOUD_TYPE"] == "azure":
@@ -76,11 +75,12 @@ class RobotManager:
             return model_client, model_name
         raise ValueError(f"Unsupported model: {config['model']['MODEL_SELECT']}")
 
-    def handle_task(self, data: Dict) -> None:
+    def handle_task(self, data: str) -> None:
         """Process incoming tasks with thread-safe operation"""
         if self._shutdown_event.is_set():
             return
 
+        data = json.loads(data)
         task_data = {
             "task": data.get("task"),
             "task_id": data.get("task_id"),
@@ -99,8 +99,6 @@ class RobotManager:
             return
 
         os.makedirs("./.log", exist_ok=True)
-        if task_data["refresh"]:
-            self.communicator.clear(self.robot_name)
         agent = ToolCallingAgent(
             tools=self.tools,
             verbosity_level=2,
@@ -111,10 +109,11 @@ class RobotManager:
             communicator=self.communicator,
             tool_executor=self.session.call_tool,
         )
-        result = await agent.run(task=task_data["task"])
+        task = task_data["task"]
+        result = await agent.run(task)
         self._send_result(
             robot_name=self.robot_name,
-            task=task_data["task"],
+            task=task,
             task_id=task_data["task_id"],
             result=result,
             tool_call=agent.tool_call,
@@ -127,7 +126,7 @@ class RobotManager:
         if self._shutdown_event.is_set():
             return
 
-        channel = f"{robot_name}_to_roboos"
+        channel = f"{robot_name}_to_RoboOS"
         payload = {
             "robot_name": robot_name,
             "subtask_handle": task,
@@ -139,10 +138,10 @@ class RobotManager:
 
     def _heartbeat_loop(self, robot_name) -> None:
         """Continuous heartbeat signal emitter"""
-        key = f"ROBOT_INFO_{robot_name}"
+        key = robot_name
         while not self._shutdown_event.is_set():
             try:
-                self.communicator.set_ttl(key, seconds=60)
+                self.communicator.agent_heartbeat(key, seconds=60)
                 time.sleep(30)
             except Exception as e:
                 if not self._shutdown_event.is_set():
@@ -151,13 +150,9 @@ class RobotManager:
 
     async def connect_to_robot(self):
         """Connect to an MCP server"""
-        self.robot_profile = yaml.safe_load(
-            open(config["profile"]["PATH"], "r", encoding="utf-8")
-        )
-        robot_tools = self.robot_profile["robot_tools"]
 
         server_params = StdioServerParameters(
-            command="python", args=[robot_tools], env=None
+            command="python", args=[config["robot"]["PATH"] + "/skill.py"], env=None
         )
 
         stdio_transport = await self.exit_stack.enter_async_context(
@@ -182,26 +177,25 @@ class RobotManager:
             }
             for tool in response.tools
         ]
-        print("\nConnected to robot with tools:", str(self.tools))
+        print("Connected to robot with tools:", str(self.tools))
 
         """Complete robot registration with thread management"""
+        self.robot_profile = yaml.safe_load(
+            open(config["robot"]["PATH"] + "/config.yaml", "r", encoding="utf-8")
+        )
         robot_name = self.robot_profile["robot_name"]
         self.robot_name = robot_name
         register = {
             "robot_name": robot_name,
-            "robot_type": self.robot_profile["robot_type"],
             "robot_tool": self.tools,
-            "current_position": self.robot_profile["current_position"],
-            "navigate_position": self.robot_profile["navigate_position"],
             "robot_state": "idle",
             "timestamp": int(datetime.now().timestamp()),
         }
         self.robot_profile["robot_state"] = "idle"
         with self.lock:
             # Registration thread
-            self.communicator.send("robot_registration", json.dumps(register))
-            self.communicator.register(
-                f"ROBOT_INFO_{robot_name}", json.dumps(register), expire_second=60
+            self.communicator.register_agent(
+                robot_name, json.dumps(register), expire_second=60
             )
 
             heartbeat_thread = threading.Thread(
