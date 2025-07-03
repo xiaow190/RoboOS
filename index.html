@@ -7,6 +7,8 @@
     <meta name="description" content="RoboOS">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <link rel="icon" type="image/png" href="./assets/logo.png">
+
     <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
     <link rel="stylesheet" href="./static/css/bulma.min.css">
     <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
@@ -29,12 +31,141 @@
             <div class="container is-max-desktop">
                 <div class="columns is-centered">
                     <div class="column has-text-centered">
-                        <h1 class="title is-1 publication-title">
-                            RoboOS: A Hierarchical Embodied Framework for Cross-Embodiment and Multi-Agent Collaboration
+                        <h1 class="title is-2 publication-title">
+                            <img src="assets/logo.png" alt="Logo"
+                                 style="height: 3rem; margin-left: -80px; margin-right: 0px; flex-shrink: 0;">
+                            <span style="display: inline-block;">
+                                RoboOS: A Hierarchical Embodied Framework for Cross-Embodiment and Multi-Agent Collaboration
+                            </span>
                         </h1>
+                        <div class="is-size-4 publication-authors">
+                            <span class="author-block">
+                                <a target="_blank" href="">BAAI RoboOS Team</a>
+                            </span>
+                        </div>
+                        <div class="column has-text-centered">
+                            <!-- ArXiv link -->
+                            <span class="link-block">
+                                <a target="_blank" href="https://arxiv.org/abs/2505.03673" class="external-link button is-normal is-rounded is-dark">
+                                    <span class="icon"><i class="fas fa-file"></i></span>
+                                    <span>Technical Report</span>
+                                </a>
+                            </span>
+                            <!-- Code Link. -->
+                            <span class="link-block">
+                                <a target="_blank" href="https://github.com/FlagOpen/RoboOS" class="external-link button is-normal is-rounded is-dark">
+                                    <span class="icon"><i class="fab fa-github"></i></span>
+                                    <span>Code</span>
+                                </a>
+                            </span>
+                            <span class="link-block">
+                                <a target="_blank" href="https://huggingface.co/collections/BAAI/robobrain20-6841eeb1df55c207a4ea0036" class="external-link button is-normal is-rounded is-dark">
+                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                    <span>RoboBrain Checkpoints</span>
+                                </a>
+                            </span>
+
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered has-text-centered">
+                <video id="put_grapes" autoplay controls muted loop playsinline width="100%">
+                    <source src="./assets/demo.mp4"
+                            type="video/mp4">
+                </video>
+              </div>
+            <!-- Abstract -->
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-four-fifths">
+                    <div class="content has-text-justified">
+                        <p>
+                            The rise of embodied intelligence has intensified the need for robust multi-agent collaboration in industrial automation, service robotics, and smart manufacturing. 
+                            However, current robotic systems struggle with critical limitations, including poor cross-embodiment adaptability, inefficient task scheduling, and inadequate dynamic error correction. 
+                            While end-to-end vision-language-action (VLA) models (e.g., OpenVLA, RDT, Pi-0) exhibit weak long-horizon planning and task generalization, 
+                            hierarchical VLA models (e.g., Helix, Gemini-Robotics, GR00T-N1) lack cross-embodiment compatibility and multi-agent coordination capabilities.
+                            To address these challenges, we present <strong>RoboOS</strong>, the first open-source embodied cross-embodiment and multi-agent collaboration Framework for  based on a Brain-Cerebellum hierarchical architecture, 
+                            facilitating a paradigm shift from single-agent to swarm intelligence. Specifically, RoboOS comprises three key components: 
+                            <strong>(1) the Embodied Cloud Model</strong>, a multimodal large language model (MLLM) for global perception and high-level decision-making;  
+                            <strong>(2) the Cerebellum Skill Library</strong>, a modular, plug-and-play toolkit for seamless multi-skill execution; and  
+                            <strong>(3) Real-Time Shared Memory</strong>, a spatiotemporal synchronization mechanism for multi-agent state coordination. By integrating hierarchical information flow, RoboOS bridges the Embodied Brain and Cerebellum Skill Library, enabling robust planning, scheduling, 
+                            and error correction for long-horizon tasks while ensuring efficient multi-agent collaboration by Real-Time Shared Memory. 
+                            Moreover, we optimize edge-cloud communication and cloud-based distributed inference to support high-frequency interactions and scalable deployment.Extensive real-world experiments across diverse scenarios 
+                            (e.g., restaurant, household, supermarket) demonstrate RoboOS's versatility, supporting heterogeneous embodiments (single-arm, dual-arm, humanoid, wheeled), which provides a scalable and practical solution for cross-embodiment collaboration, 
+                            pushing the boundaries of embodied intelligence.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <!-- /Abstract -->
+        </div>
+    </section>
+
+    <section>
+        <div class="columns is-centered">
+        <div class="container">
+          <div class="content has-text-centered">
+            <div class="box m-5" >
+              <div class="content has-text-centered">
+                <h2 class="title is-3">Framework of RoboOS 2.0 (SaaS + MCP)</h2>
+                <figure>
+                    <img src="assets/overview2.png" alt="teaser" width="90%">
+                </figure>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="columns is-centered">
+        <div class="container">
+          <div class="content has-text-centered">
+            <div class="box m-5" >
+              <div class="content has-text-centered">
+                <h2 class="title is-3">Framework of RoboOS 1.0</h2>
+                <figure>
+                    <img src="assets/overview1.png" alt="teaser" width="90%">
+                </figure>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <section class="section" id="Citation">
+        <div class="container is-max-desktop content">
+            <h2 class="title">Citation</h2>
+            <p class="is-size-5">
+                If you find our work helpful, feel free to cite it:
+            </p>
+            
+            <pre><code>
+                @article{tan2025roboos,
+                    title={RoboOS: A Hierarchical Embodied Framework for Cross-Embodiment and Multi-Agent Collaboration}, 
+                    author={Tan, Huajie and Hao, Xiaoshuai and Lin, Minglan and Wang, Pengwei and Lyu, Yaoxu and Cao, Mingyu and Wang, Zhongyuan and Zhang, Shanghang},
+                    journal={arXiv preprint arXiv:2505.03673},
+                    year={2025}
+                    }
+                @article{RoboBrain 2.0 Technical Report,
+                    title={RoboBrain 2.0 Technical Report},
+                    author={BAAI RoboBrain Team},
+                    journal={arXiv preprint arXiv:TODO},
+                    year={2025}
+                    }
+                @article{RoboBrain1.0,
+                    title={Robobrain: A unified brain model for robotic manipulation from abstract to concrete},
+                    author={Ji, Yuheng and Tan, Huajie and Shi, Jiayu and Hao, Xiaoshuai and Zhang, Yuan and Zhang, Hengyuan and Wang, Pengwei and Zhao, Mengdi and Mu, Yao and An, Pengju and others},
+                    journal={arXiv preprint arXiv:2502.21257},
+                    year={2025}
+                }
+            </code></pre>
         </div>
     </section>
 
