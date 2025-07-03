@@ -33,7 +33,7 @@
                     <div class="column has-text-centered">
                         <h1 class="title is-2 publication-title">
                             <img src="assets/logo.png" alt="Logo"
-                                 style="height: 3rem; margin-left: -80px; margin-right: 0px; flex-shrink: 0;">
+                                 style="height: 6rem; margin-left: -40px; margin-right: 0px; flex-shrink: 0;">
                             <span style="display: inline-block;">
                                 RoboOS: A Hierarchical Embodied Framework for Cross-Embodiment and Multi-Agent Collaboration
                             </span>
@@ -55,7 +55,7 @@
                             <span class="link-block">
                                 <a target="_blank" href="https://github.com/FlagOpen/RoboOS" class="external-link button is-normal is-rounded is-dark">
                                     <span class="icon"><i class="fab fa-github"></i></span>
-                                    <span>Code</span>
+                                    <span>RoboOS Codebase</span>
                                 </a>
                             </span>
                             <span class="link-block">
@@ -74,15 +74,10 @@
 
     <section class="section">
         <div class="container is-max-desktop">
-            <div class="columns is-centered has-text-centered">
-                <video id="put_grapes" autoplay controls muted loop playsinline width="100%">
-                    <source src="./assets/demo.mp4"
-                            type="video/mp4">
-                </video>
-              </div>
             <!-- Abstract -->
             <div class="columns is-centered has-text-centered">
-                <div class="column is-four-fifths">
+                <h2 class="title is-3">Abstract</h2>
+                <!-- <div class="column is-four-fifths"> -->
                     <div class="content has-text-justified">
                         <p>
                             The rise of embodied intelligence has intensified the need for robust multi-agent collaboration in industrial automation, service robotics, and smart manufacturing. 
@@ -100,9 +95,15 @@
                             pushing the boundaries of embodied intelligence.
                         </p>
                     </div>
-                </div>
+                <!-- </div> -->
             </div>
-            <!-- /Abstract -->
+            <div class="columns is-centered has-text-centered">
+                <h2 class="title is-3"></h2>
+                <video id="put_grapes" autoplay controls muted loop playsinline width="100%">
+                    <source src="./assets/demo.mp4"
+                            type="video/mp4">
+                </video>
+            </div>    
         </div>
     </section>
 
@@ -116,6 +117,12 @@
                 <figure>
                     <img src="assets/overview2.png" alt="teaser" width="90%">
                 </figure>
+                <figcaption>
+                    <strong>Framework of RoboOS.</strong> RoboOS is a Brain-Cerebellum hierarchical architecture for multi-robot collaboration that comprises three core components: 
+                        (a) Cloud-based Embodied Brain model for high-level cognition and multi-agent coordination; 
+                        (b) Distributed Cerebellum Modules for executing robot-specific skills; 
+                        and (c) Real-Time Shared Memory for enhanced environmental awareness.
+                </figcaption>
               </div>
             </div>
           </div>
@@ -131,6 +138,57 @@
                 <figure>
                     <img src="assets/overview1.png" alt="teaser" width="90%">
                 </figure>
+                <figcaption>
+                    <strong>Framework of RoboOS.</strong> RoboOS is a Brain-Cerebellum hierarchical architecture for multi-robot collaboration that comprises three core components: 
+                        (a) Cloud-based Embodied Brain model for high-level cognition and multi-agent coordination; 
+                        (b) Distributed Cerebellum Modules for executing robot-specific skills; 
+                        and (c) Real-Time Shared Memory for enhanced environmental awareness.
+                </figcaption>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <section>
+      <div class="columns is-centered">
+        <div class="container">
+          <div class="content has-text-centered">
+            <div class="box m-5" >
+              <div class="content has-text-centered">
+                <h2 class="title is-3">Pipeline of RoboOS</h2>
+                <figure>
+                    <img src="assets/pipeline.png" alt="teaser" width="90%">
+                </figure>
+                <figcaption>
+                    <strong>Pipeline of RoboOS.</strong> The RoboOS framework implements a workflow pipeline for multi-robot collaboration, consisting of four key phases: (1) hierarchical task decomposition, 
+                        (2) topology-aware subtask allocation, (3) distributed agent-based execution, and (4) dynamic memory updating. 
+                        This integrated workflow enables coordinated task completion while maintaining adaptability to environmental and operational constraints.
+                </figcaption>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <section>
+      <div class="columns is-centered">
+        <div class="container">
+          <div class="content has-text-centered">
+            <div class="box m-5" >
+              <div class="content has-text-centered">
+                <h2 class="title is-3">Real-world Demos of RoboOS</h2>
+                <figure>
+                    <img src="assets/scene_demos.png" alt="teaser" width="90%">
+                </figure>
+                <figcaption>
+                    <strong>Real-world RoboOS Demonstrations.</strong> We showcase multi-robot collaboration in three scenarios: 
+                    (a) Restaurant: Unitree G1 and Agilex robots prepare burgers. (b) Household: Realman and Agilex robots fetch items. (c) Supermarket: Robots coordinate gift selection and packaging.
+                </figcaption>
               </div>
             </div>
           </div>
@@ -147,24 +205,24 @@
             </p>
             
             <pre><code>
-                @article{tan2025roboos,
-                    title={RoboOS: A Hierarchical Embodied Framework for Cross-Embodiment and Multi-Agent Collaboration}, 
-                    author={Tan, Huajie and Hao, Xiaoshuai and Lin, Minglan and Wang, Pengwei and Lyu, Yaoxu and Cao, Mingyu and Wang, Zhongyuan and Zhang, Shanghang},
-                    journal={arXiv preprint arXiv:2505.03673},
-                    year={2025}
-                    }
-                @article{RoboBrain 2.0 Technical Report,
-                    title={RoboBrain 2.0 Technical Report},
-                    author={BAAI RoboBrain Team},
-                    journal={arXiv preprint arXiv:TODO},
-                    year={2025}
-                    }
-                @article{RoboBrain1.0,
-                    title={Robobrain: A unified brain model for robotic manipulation from abstract to concrete},
-                    author={Ji, Yuheng and Tan, Huajie and Shi, Jiayu and Hao, Xiaoshuai and Zhang, Yuan and Zhang, Hengyuan and Wang, Pengwei and Zhao, Mengdi and Mu, Yao and An, Pengju and others},
-                    journal={arXiv preprint arXiv:2502.21257},
-                    year={2025}
-                }
+@article{tan2025roboos,
+    title={RoboOS: A Hierarchical Embodied Framework for Cross-Embodiment and Multi-Agent Collaboration}, 
+    author={Tan, Huajie and Hao, Xiaoshuai and Lin, Minglan and Wang, Pengwei and Lyu, Yaoxu and Cao, Mingyu and Wang, Zhongyuan and Zhang, Shanghang},
+    journal={arXiv preprint arXiv:2505.03673},
+    year={2025}
+    }
+@article{RoboBrain 2.0 Technical Report,
+    title={RoboBrain 2.0 Technical Report},
+    author={BAAI RoboBrain Team},
+    journal={arXiv preprint arXiv:TODO},
+    year={2025}
+    }
+@article{RoboBrain1.0,
+    title={Robobrain: A unified brain model for robotic manipulation from abstract to concrete},
+    author={Ji, Yuheng and Tan, Huajie and Shi, Jiayu and Hao, Xiaoshuai and Zhang, Yuan and Zhang, Hengyuan and Wang, Pengwei and Zhao, Mengdi and Mu, Yao and An, Pengju and others},
+    journal={arXiv preprint arXiv:2502.21257},
+    year={2025}
+}
             </code></pre>
         </div>
     </section>
