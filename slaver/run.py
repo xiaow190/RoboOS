@@ -14,7 +14,8 @@ from typing import Dict, List, Optional
 import yaml
 from agents.models import AzureOpenAIServerModel, OpenAIServerModel
 from agents.slaver_agent import ToolCallingAgent
-from flag_scale.flagscale.agent.Collaboration import Collaborator
+from flag_scale.flagscale.agent.collaboration import Collaborator
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from tools.utils import Config
