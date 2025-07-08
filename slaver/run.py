@@ -16,8 +16,9 @@ from agents.models import AzureOpenAIServerModel, OpenAIServerModel
 from agents.slaver_agent import ToolCallingAgent
 from flag_scale.flagscale.agent.collaboration import Collaborator
 
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp.client.streamable_http import streamablehttp_client
+from mcp import ClientSession
+
 from tools.utils import Config
 
 config = Config.load_config()
@@ -160,14 +161,10 @@ class RobotManager:
     async def connect_to_robot(self):
         """Connect to an MCP server"""
 
-        server_params = StdioServerParameters(
-            command="python", args=[config["robot"]["PATH"] + "/skill.py"], env=None
-        )
-
         stdio_transport = await self.exit_stack.enter_async_context(
-            stdio_client(server_params)
+            streamablehttp_client(f'{config["mcp"]["URL"]}/mcp')
         )
-        self.stdio, self.write = stdio_transport
+        self.stdio, self.write, _ = stdio_transport
         self.session = await self.exit_stack.enter_async_context(
             ClientSession(self.stdio, self.write)
         )
