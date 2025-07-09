@@ -1,8 +1,9 @@
 import traceback
 
+import json
 import psutil
 from agents.agent import GlobalAgent
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -48,12 +49,13 @@ def robot_status():
         JSON response with robot status
     """
     try:
-        registered_robots = master_agent.collaborator.retrieve_all_agents_name()
-        registered_robots_status = {}
-        for registered_robot in registered_robots:
-            registered_robots_status[registered_robot.get("robot_name")] = (
-                registered_robot.get("robot_state")
-            )
+        registered_robots = master_agent.collaborator.retrieve_all_agents()
+        registered_robots_status = []
+        for robot_name, robot_info in registered_robots.items():
+            registered_robots_status.append({
+                "robot_name": robot_name,
+                "robot_state": json.loads(robot_info).get("robot_state")
+            })
         return jsonify(registered_robots_status), 200
     except Exception as e:
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
