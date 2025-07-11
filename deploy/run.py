@@ -6,9 +6,16 @@ import subprocess
 from pathlib import Path
 
 import redis
+import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from ruamel.yaml import YAML
-from utils import recursive_update, split_dot_keys
+from utils import (
+    handle_local_tools,
+    handle_remote_tools,
+    recursive_update,
+    split_dot_keys,
+    validate_collaborator_config,
+)
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -150,23 +157,30 @@ def validate_config():
 
     # master
     master_config = data["master_config"]
+    slaver_config = data["slaver_config"]
+
     with open(master_config, "r", encoding="utf-8") as f:
-        data = yaml.load(f)
+        master_data = yaml.load(f)
+
+    with open(slaver_config, "r", encoding="utf-8") as f:
+        slaver_data = yaml.load(f)
+
     # collaborator
-    collaborator = data.get("collaborator", None)
-    if not collaborator:
-        return (
-            jsonify(
-                {"success": False, "message": f"Lack of collaborator configuration"}
-            ),
-            400,
-        )
+    master_collaborator = master_data.get("collaborator")
+    slaver_collaborator = slaver_data.get("collaborator")
+
+    valid, message = validate_collaborator_config(
+        master_collaborator, slaver_collaborator
+    )
+    if not valid:
+        return jsonify({"success": False, "message": message}), 400
+
     try:
         r = redis.StrictRedis(
-            host=collaborator["HOST"],
-            port=collaborator["PORT"],
-            password=collaborator["PASSWORD"],
-            db=collaborator["DB"],
+            host=master_collaborator["host"],
+            port=master_collaborator["port"],
+            password=master_collaborator["password"],
+            db=master_collaborator["db"],
             socket_connect_timeout=5,
         )
         r.ping()
@@ -178,6 +192,20 @@ def validate_config():
             ),
             400,
         )
+
+    # mcp ：  remote
+    call_type = slaver_data["robot"]["call_type"]
+    path = slaver_data["robot"]["path"]
+    if call_type == "remote":
+        try:
+            url = path.rstrip("/") + "/mcp"
+
+            requests.post(url, timeout=5)
+        except requests.exceptions.RequestException as e:
+            return (
+                jsonify({"success": False, "message": "mcp service exception"}),
+                400,
+            )
 
     return jsonify(
         {
@@ -347,70 +375,40 @@ def start_slaver():
 
 
 @app.route("/api/get_tool_config", methods=["POST"])
-def get_tool_config():
-
+async def get_tool_config():
     data = request.json
+    slaver_config_path = data.get("slaver_config")
 
-    slaver_config = data.get("slaver_config")
-
-    slaver_path = Path(slaver_config)
-
-    parent = slaver_path.parent
+    if not slaver_config_path or not os.path.exists(slaver_config_path):
+        return (
+            jsonify(
+                {"success": False, "message": "Invalid config file path", "data": []}
+            ),
+            400,
+        )
 
     try:
-        tool_path = f"{parent}/robot_tools/skill.py"
-        with open(tool_path, "r", encoding="utf-8") as f:
-            source = f.read()
-
-        tree = ast.parse(source, filename=tool_path)
-        results = []
-        for node in tree.body:
-            if (
-                isinstance(node, ast.AsyncFunctionDef)
-                or isinstance(node, ast.FunctionDef)
-            ) and node.decorator_list:
-                for deco in node.decorator_list:
-                    if (
-                        isinstance(deco, ast.Call)
-                        and hasattr(deco.func, "attr")
-                        and deco.func.attr == "tool"
-                    ):
-                        func_name = node.name
-                        docstring = ast.get_docstring(node) or ""
-                        parameters = []
-
-                        total_args = len(node.args.args)
-                        defaults = [None] * (
-                            total_args - len(node.args.defaults)
-                        ) + node.args.defaults
-
-                        for arg, default in zip(node.args.args, defaults):
-                            if arg.arg == "self":
-                                continue
-                            arg_type = (
-                                ast.unparse(arg.annotation) if arg.annotation else "Any"
-                            )
-                            default_val = ast.unparse(default) if default else None
-
-                            parameters.append(
-                                {
-                                    "name": arg.arg,
-                                    "type": arg_type,
-                                    "default": default_val,
-                                }
-                            )
-
-                        results.append(
-                            {
-                                "name": func_name,
-                                "description": docstring.strip(),
-                                "parameters": parameters,
-                            }
-                        )
-
-        return jsonify({"success": True, "data": results}), 200
+        with open(slaver_config_path, "r", encoding="utf-8") as f:
+            slaver_data = yaml.load(f)
     except Exception as e:
-        return jsonify({"success": False, "data": []}), 400
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": f"Failed to read config file: {str(e)}",
+                    "data": [],
+                }
+            ),
+            400,
+        )
+
+    call_type = slaver_data.get("robot", {}).get("call_type")
+    path = slaver_data.get("robot", {}).get("path")
+
+    if call_type == "local":
+        return await handle_local_tools(slaver_config_path, path)
+    else:
+        return await handle_remote_tools(path)
 
 
 @app.route("/api/save_tool_config", methods=["POST"])
