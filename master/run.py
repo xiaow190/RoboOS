@@ -1,5 +1,4 @@
 import json
-import traceback
 
 import psutil
 from agents.agent import GlobalAgent
@@ -108,7 +107,6 @@ def publish_task():
         )
 
     except Exception as e:
-        print(traceback.print_exc())
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 
