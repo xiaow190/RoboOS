@@ -48,9 +48,5 @@ robot:
   call_type: remote
   path: "http://127.0.0.1:8000"
 
-# mcp
-mcp:
-  URL: "http://127.0.0.1:8888"
-
 # Output reasoning context, time cost and other information
 profiling: true
