@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -208,6 +209,18 @@ class GlobalAgent:
         grouped_tasks = self._group_tasks_by_order(subtask_list)
 
         task_id = task_id or str(uuid.uuid4()).replace("-", "")
+
+        threading.Thread(
+            target=asyncio.run,
+            args=(self._dispath_subtasks_async(task, task_id, grouped_tasks, refresh),),
+            daemon=True,
+        ).start()
+
+        return reasoning_and_subtasks
+
+    async def _dispath_subtasks_async(
+        self, task: str, task_id: str, grouped_tasks: Dict, refresh: bool
+    ):
         order_flag = "false" if len(grouped_tasks.keys()) == 1 else "true"
         for task_count, (order, group_task) in enumerate(grouped_tasks.items()):
             self.logger.info(f"Sending task group {order}:\n{group_task}")
@@ -228,4 +241,3 @@ class GlobalAgent:
                 self.collaborator.update_agent_busy(robot_name, True)
             self.collaborator.wait_agents_free(working_robots)
         self.logger.info(f"Task_id ({task_id}) [{task}] has been sent to all agents.")
-        return reasoning_and_subtasks

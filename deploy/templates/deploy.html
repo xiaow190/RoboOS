@@ -1085,9 +1085,37 @@ Waiting for deployment to begin...
         });
 
         function showToolConfig() {
+            document.getElementById('tool-config-modal').style.display = 'block';
+
+            if (!toolConfigInitialized) {
+                // Delegate click events on tab buttons
+                document.querySelector('.tool-tabs').addEventListener('click', function (e) {
+                    if (e.target.classList.contains('tab-btn')) {
+                        openToolTab(e.target);
+                    }
+                });
+                toolConfigInitialized = true;
+            }
             loadToolConfig();
         }
+        
+        function openToolTab(clickedBtn) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            clickedBtn.classList.add('active');
 
+            // Hide all tab contents
+            document.querySelectorAll('.tool-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            // Show the selected tab content
+            const tabId = clickedBtn.getAttribute('data-tab');
+            const tabContent = document.getElementById(tabId);
+            if (tabContent) {
+                tabContent.style.display = 'block';
+            }
+        }
 
         function loadToolConfig() {
             const deploymentConfig = {

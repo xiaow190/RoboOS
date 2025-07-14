@@ -27,107 +27,233 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 <img src="./assets/overview2.png", width="600" />
 </div>
 
-### Structure for RoboOS 1.0
-<div align="center">
-<img src="./assets/overview.png" />
-</div>
-
 
 ## <a id="RoadMap"> 🎯 RoadMap</a>
 - [x] Release **RoboOS-1.0** version
 - [x] Release **[Technical Report](https://arxiv.org/abs/2505.03673)** of RoboOS.
-- [ ] Release **RoboOS-2.0** version *(by the end of this month)*
+- [x] Release **RoboOS-2.0 stand-alone** s version 
 - [ ] Release friendly and detailed **User Guide Manual**​.
 - [ ] Release more comprehensive multi-agent collaboration **DEMOs** based on RoboOS​.
 
-## <a id="Manual"> ⭐️ Full Guide Manual (RoboOS-2.0)
-*Coming soon ...*
 
-Due to the substantial code refactoring and engineering efforts required, we'll need to postpone the release by *several days*. We appreciate your patience as we ensure the highest quality standards.
-
-
-## <a id="Manual"> ⭐️ Simple Guide Manual (Only for RoboOS-1.0)</a>
+## <a id="Manual"> ⭐️ Guide Manual</a>
 
 ### 1. Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - Redis server
 - pip package manager
 
-### 2. Installation
+### 🚀 2. Deployment Method One: Using Docker Image (Recommended)
+#### 2.1 Pull the Docker Image
 
 ```bash
-# Clone the repository
-git clone https://github.com/FlagOpen/RoboOS.git
-cd RoboOS
-
-# Install dependencies
-pip install -r requirements.txt
-
+docker pull flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale-agent
 ```
 
-### 3. Quick Start
+#### 2.2 Start the Docker Container
 ```bash
-# 1. Start Redis
-redis-server
+# You may choose to mount the RoboBrain model into the container:
 
-# 2. Start Master
-cd master
+docker run -itd \
+  --gpus all \
+  --shm-size=500g \
+  --name agent \
+  --hostname flagscale-agent \
+  -v {your_local_path}/BAAI/RoboBrain2.0-7B \
+  -w /workspace/RoboOS \
+  flagscale-agent:RoboOS
+```
+
+#### 2.3 Open the Deployment Web Page
+```cpp
+http://127.0.0.1:8888
+```
+
+### 🧩 3. Deployment Method Two: Run from Source (For Development/Customization)
+
+#### 3.1 Clone the Repository (stand-alone branch)
+```bash
+git clone -b stand-alone https://github.com/FlagOpen/RoboOS.git
+cd RoboOS
+```
+
+#### 3.2 Install Dependencies
+
+```bash
+# It is recommended to use a virtual environment:
+
+pip install -r requirements.txt
+```
+
+#### 3.3 Start the Deployment Service
+```bash
+cd deploy
+
 python run.py
+```
+#### 3.4 Open the Deployment Web Page
+```cpp
+http://127.0.0.1:8888
+```
 
-# 3. Start Slaver (for multi-agent, your should run at different robots respectively)
+### ⚙️ 4. Skill Store Configuration
+> Two skill access modes are supported and can be selected on the web deployment page:
+
+#### ✅ Local Mode
+1. Clone the RoboSkill repository:
+```bash
+git clone https://github.com/FlagOpen/RoboSkill
+```
+
+2. Place `skill.py` at the local path specified in the web UI
+```bash
+Example: slaver/demo_robot_local/skill.py
+```
+
+#### 🌐 Remote Mode
+1. Host the `skill.py` file on a remote server accessible over the network (Robot)
+2. Start the skill server:
+```bash
+python skill.py
+```
+### ✅ 5. Final Step
+Visit the web UI at http://127.0.0.1:8888 and follow the on-screen instructions to complete configuration.
+Once finished, you can control the robot and trigger skills from the interface.
+
+## 🔧 Manual Deployment (Advanced)
+If you prefer to manually run RoboOS without using the deployment web UI, follow the steps below to start the system components directly from source.
+
+### 1️⃣ Start the Master Agent
+The **master** is responsible for receiving tasks, decomposing them, and assigning subtasks to available slaver agents.
+
+```bash
+cd master
+
+python run.py
+```
+>⚠️ You must start the master agent first, otherwise the slaver will fail to register.
+
+### 2️⃣ Start the Slaver Agent
+The **slaver** connects to the master and executes the assigned subtasks on the physical robot.
+
+```bash
 cd slaver
 python run.py
-
-# 4. Launch Web Interface
-python gradio_ui.py
-
-# Then, access the web interface at: http://localhost:7861
 ```
+You can run multiple slaver agents on different robots or terminals, each connected to the same master.
 
-### 4. Working with [RoboSkill](https://github.com/phoenixdong/RoboSkill)
+### 📤 Sending Tasks Manually
+After starting both the **master** and **slaver** agents, you can send tasks in either of the following ways:
+
+#### ✅ Option 1: Use Python Script (Direct HTTP Request)
 ```bash
-# 1. Download Skill Store
-git clone https://github.com/FlagOpen/RoboSkill
+import requests
 
-# 2. Modify the configuration file
-slaver/config.yaml
+# Replace with your master agent's actual IP or hostname
+MASTER_URL = "http://localhost:5000/publish_task"
+
+payload = {
+    "task": "Now you are at the kitchen table, pick up the apple from the kitchen table, navigate to the serving table, place the apple on the serving table, pick up the bowl from the serving table, navigate to the kitchen table, place the bowl on the kitchen table."
+}
+
+response = requests.post(MASTER_URL, json=payload)
+
+print("Status:", response.status_code)
+print("Response:", response.json())
+
+```
+> Make sure the master service is running and accessible on port 5000.
+
+#### ✅ Option 2: Use the Release Deployment Web Interface
+You can also start the deployment service and access a simple web-based task submission interface:
+```bash
+cd deploy
+python run.py
+
+# Then visit: http://127.0.0.1:8888/release
 ```
 
 ## ✨ Example Demo
 
-### 🔍 Master Console
-
+### Web-Based Deployment and Configuration
+After launching the container or running the deployment script, you can access the RoboOS deployment interface in your browser at:
+```cpp
+http://127.0.0.1:8888
+```
 <div align="center">
-<img src="./assets/master_example_0.png" />
-</div>
-
-<div align="center">
-<img src="./assets/master_example_1.png" />
-</div>
-
-### 🤖 Slaver Console
-
-#### Subtask_1 for Realman Single-ARM Robot
-
-<div align="center">
-<img src="./assets/slaver_subtask_1.png" />
+<img src="./assets/deploy_0.png" />
 </div>
 
 
-#### Subtask_2 for Agilex Dual-ARM Robot
+#### Click the Start Deployment button to begin configuring your system.
 
 <div align="center">
-<img src="./assets/slaver_subtask_2.png" />
+<img src="./assets/deploy_1.png">
 </div>
 
+You’ll then be guided through several steps:
 
-#### Subtask_3 for Realman Single-ARM Robot
+##### Basic Settings
 
-<div align="center">
-<img src="./assets/slaver_subtask_3.png" />
-</div>
+1. **Conda Environment Selection:** Select the conda environment to run
+2. **🧠 Inference Service Configuration**  
+  During the deployment process, you will be asked whether to enable the **Inference Service Configuration** option:
+  + ✅ Checked: A built-in inference service will be automatically started inside the container.
+  + ❌ Unchecked: You can connect to your own externally hosted inference service instead (e.g., RoboBrain running on a remote server).
 
+
+##### Advanced Settings
+
+Here you can customize and inspect advanced configurations before starting the deployment:
+
+1. **Master Agent Configuration:**
+  <div align="center">
+  <img src="./assets/deploy_master_0.png">
+  </div>
+
+2. **Slaver Agent Configuration:**
+  <div align="center">
+  <img src="./assets/deploy_slaver_0.png">
+  </div>
+
+3. **Robot Tools Config**
+Preview the registered skills available to the robot.
+  > ⚠️ Ensure the skill service is already running before checking this section.
+
+  <div align="center">
+  <img src="./assets/deploy_slaver_tools_0.png">
+  </div>
+
+4. **Start Deployment**
+After completing the setup, click **Start Deployment** to launch the system.
+  <div align="center">
+  <img src="./assets/deploy_2.png">
+  </div>
+
+
+### 🚀 Task Publishing and Execution
+After deployment, you can send tasks to the system for execution:
+
+#### 📝 Step 1: Click the Publish Task button
+  <div align="center">
+  <img src="./assets/publish_task_0.png">
+  </div>
+
+#### 📤 Step 2: Send a Natural Language Task Command
+Example:
+
+  ```bash
+  Now you are at the kitchen table, pick up the apple from the kitchen table, navigate to the serving table, place the apple on the serving table, pick up the bowl from the serving table, navigate to the kitchen table, place the bowl on the kitchen table.
+  ```
+
+#### ⚙️ Step 3: Task Decomposition and Execution Results
+The master agent will automatically decompose the task into subtasks and assign them to the
+  <div align="center">
+  <img src="./assets/master_subtask.png">
+  </div>
+  
+#### 
 
 ## <a id="Citation"> 📑 Citation</a> 
 If you find this project useful, welcome to cite us.
