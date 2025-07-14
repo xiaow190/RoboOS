@@ -50,84 +50,168 @@ Due to the substantial code refactoring and engineering efforts required, we'll 
 
 ### 1. Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - Redis server
 - pip package manager
 
-### 2. Installation
+### 🚀 2. Deployment Method One: Using Docker Image (Recommended)
+#### 2.1 Pull the Docker Image
 
 ```bash
-# Clone the repository
-git clone https://github.com/FlagOpen/RoboOS.git
+docker pull flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale-agent
+```
+
+#### 2.2 Start the Docker Container
+```bash
+# You may choose to mount the RoboBrain model into the container:
+
+docker run -itd \
+  --gpus all \
+  --shm-size=500g \
+  --name agent \
+  --hostname flagscale-agent \
+  -v /home/flagscale_cicd/workspace/data/model/BAAI/RoboBrain2.0-7B:/workspace/model/BAAI/RoboBrain2.0-7B \
+  -w /workspace/RoboOS \
+  flagscale-agent:RoboOS
+
+```
+
+#### 2.3 Open the Deployment Web Page
+```cpp
+http://127.0.0.1:8888
+```
+
+### 🧩 3. Deployment Method Two: Run from Source (For Development/Customization)
+
+#### 3.1 Clone the Repository (stand-alone branch)
+```bash
+git clone -b stand-alone https://github.com/FlagOpen/RoboOS.git
 cd RoboOS
+```
 
-# Install dependencies
+#### 3.2 Install Dependencies
+
+```bash
+# It is recommended to use a virtual environment:
+
 pip install -r requirements.txt
-
 ```
 
-### 3. Quick Start
+#### 3.3 Start the Deployment Service
 ```bash
-# 1. Start Redis
-redis-server
+cd deploy
 
-# 2. Start Master
-cd master
 python run.py
-
-# 3. Start Slaver (for multi-agent, your should run at different robots respectively)
-cd slaver
-python run.py
-
-# 4. Launch Web Interface
-python gradio_ui.py
-
-# Then, access the web interface at: http://localhost:7861
+```
+#### 3.4 Open the Deployment Web Page
+```cpp
+http://127.0.0.1:8888
 ```
 
-### 4. Working with [RoboSkill](https://github.com/phoenixdong/RoboSkill)
+### ⚙️ 4. Skill Store Configuration
+> Two skill access modes are supported and can be selected on the web deployment page:
+
+#### ✅ Local Mode
+1. Clone the RoboSkill repository:
 ```bash
-# 1. Download Skill Store
 git clone https://github.com/FlagOpen/RoboSkill
-
-# 2. Modify the configuration file
-slaver/config.yaml
 ```
+
+2. Place `skill.py` at the local path specified in the web UI
+```bash
+Example: slaver/demo_robot_local/skill.py
+```
+
+#### 🌐 远程 HTTP 模式（Remote）
+1. Host the `skill.py` file on a remote server accessible over the network (Robot)
+2. Start the skill server:
+```bash
+python skill.py
+```
+### ✅ 5. Final Step
+Visit the web UI at http://127.0.0.1:8888 and follow the on-screen instructions to complete configuration.
+Once finished, you can control the robot and trigger skills from the interface.
+
 
 ## ✨ Example Demo
 
-### 🔍 Master Console
-
+### Web-Based Deployment and Configuration
+After launching the container or running the deployment script, you can access the RoboOS deployment interface in your browser at:
+```cpp
+http://127.0.0.1:8888
+```
 <div align="center">
-<img src="./assets/master_example_0.png" />
-</div>
-
-<div align="center">
-<img src="./assets/master_example_1.png" />
-</div>
-
-### 🤖 Slaver Console
-
-#### Subtask_1 for Realman Single-ARM Robot
-
-<div align="center">
-<img src="./assets/slaver_subtask_1.png" />
+<img src="./assets/deploy_0.png" />
 </div>
 
 
-#### Subtask_2 for Agilex Dual-ARM Robot
+#### Click the Start Deployment button to begin configuring your system.
 
 <div align="center">
-<img src="./assets/slaver_subtask_2.png" />
+<img src="./assets/deploy_1.png">
 </div>
 
+You’ll then be guided through several steps:
 
-#### Subtask_3 for Realman Single-ARM Robot
+##### Basic Settings
 
-<div align="center">
-<img src="./assets/slaver_subtask_3.png" />
-</div>
+1. **Conda Environment Selection:** Select the conda environment to run
+2. **🧠 Inference Service Configuration**  
+  During the deployment process, you will be asked whether to enable the **Inference Service Configuration** option:
+  + ✅ Checked: A built-in inference service will be automatically started inside the container.
+  + ❌ Unchecked: You can connect to your own externally hosted inference service instead (e.g., RoboBrain running on a remote server).
 
+
+##### Advanced Settings
+
+Here you can customize and inspect advanced configurations before starting the deployment:
+
+1. **Master Node Configuration:**
+  <div align="center">
+  <img src="./assets/deploy_master_0.png">
+  </div>
+
+2. **Slaver Node Configuration:**
+  <div align="center">
+  <img src="./assets/deploy_slaver_0.png">
+  </div>
+
+3. **Robot Tools Config**
+Preview the registered skills available to the robot.
+  > ⚠️ Ensure the skill service is already running before checking this section.
+
+  <div align="center">
+  <img src="./assets/deploy_slaver_tools_0.png">
+  </div>
+
+4. **Start Deployment**
+After completing the setup, click **Start Deployment** to launch the system.
+  <div align="center">
+  <img src="./assets/deploy_2.png">
+  </div>
+
+
+### 🚀 Task Publishing and Execution
+After deployment, you can send tasks to the system for execution:
+
+#### 📝 Step 1: Click the Publish Task button
+  <div align="center">
+  <img src="./assets/publish_task_0.png">
+  </div>
+
+#### 📤 Step 2: Send a Natural Language Task Command
+Example:
+
+  ```bash
+  Now you are at the kitchen table, pick up the apple from the kitchen table, navigate to the serving table, place the apple on the serving table, pick up the bowl from the serving table, navigate to the kitchen table, place the bowl on the kitchen table.
+  ```
+
+#### ⚙️ Step 3: Task Decomposition and Execution Results
+The master node will automatically decompose the task into subtasks and assign them to the
+  <div align="center">
+  <img src="./assets/master_subtask.png">
+  </div>
+  
 
 ## <a id="Citation"> 📑 Citation</a> 
 If you find this project useful, welcome to cite us.
