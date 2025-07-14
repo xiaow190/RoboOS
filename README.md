@@ -35,13 +35,13 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 - [ ] Release friendly and detailed **User Guide Manual**​.
 - [ ] Release more comprehensive multi-agent collaboration **DEMOs** based on RoboOS​.
 
-## <a id="Manual"> ⭐️ Full Guide Manual (RoboOS-2.0)
+## <a id="Manual"> ⭐️ Full Guide Manual
 *Coming soon ...*
 
 Due to the substantial code refactoring and engineering efforts required, we'll need to postpone the release by *several days*. We appreciate your patience as we ensure the highest quality standards.
 
 
-## <a id="Manual"> ⭐️ Simple Guide Manual (for RoboOS-2.0 stand-alone)</a>
+## <a id="Manual"> ⭐️ Simple Guide Manual</a>
 
 ### 1. Prerequisites
 
