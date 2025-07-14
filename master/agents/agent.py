@@ -1,6 +1,6 @@
+import asyncio
 import json
 import logging
-import asyncio
 import os
 import threading
 import uuid
@@ -210,13 +210,17 @@ class GlobalAgent:
 
         task_id = task_id or str(uuid.uuid4()).replace("-", "")
 
-        threading.Thread(target=asyncio.run,
-                         args=(self._dispath_subtasks_async(task, task_id, grouped_tasks, refresh), ),
-                         daemon=True).start()
+        threading.Thread(
+            target=asyncio.run,
+            args=(self._dispath_subtasks_async(task, task_id, grouped_tasks, refresh),),
+            daemon=True,
+        ).start()
 
         return reasoning_and_subtasks
 
-    async def _dispath_subtasks_async(self, task: str, task_id: str, grouped_tasks: Dict, refresh: bool):
+    async def _dispath_subtasks_async(
+        self, task: str, task_id: str, grouped_tasks: Dict, refresh: bool
+    ):
         order_flag = "false" if len(grouped_tasks.keys()) == 1 else "true"
         for task_count, (order, group_task) in enumerate(grouped_tasks.items()):
             self.logger.info(f"Sending task group {order}:\n{group_task}")
