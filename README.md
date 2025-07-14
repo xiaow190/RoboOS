@@ -35,13 +35,8 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 - [ ] Release friendly and detailed **User Guide Manual**​.
 - [ ] Release more comprehensive multi-agent collaboration **DEMOs** based on RoboOS​.
 
-## <a id="Manual"> ⭐️ Full Guide Manual
-*Coming soon ...*
 
-Due to the substantial code refactoring and engineering efforts required, we'll need to postpone the release by *several days*. We appreciate your patience as we ensure the highest quality standards.
-
-
-## <a id="Manual"> ⭐️ Simple Guide Manual</a>
+## <a id="Manual"> ⭐️ Guide Manual</a>
 
 ### 1. Prerequisites
 
@@ -116,7 +111,7 @@ git clone https://github.com/FlagOpen/RoboSkill
 Example: slaver/demo_robot_local/skill.py
 ```
 
-#### 🌐 Remote HTTP Mode
+#### 🌐 Remote Mode
 1. Host the `skill.py` file on a remote server accessible over the network (Robot)
 2. Start the skill server:
 ```bash
@@ -129,33 +124,33 @@ Once finished, you can control the robot and trigger skills from the interface.
 ## 🔧 Manual Deployment (Advanced)
 If you prefer to manually run RoboOS without using the deployment web UI, follow the steps below to start the system components directly from source.
 
-### 1️⃣ Start the Master Node
-The **master** is responsible for receiving tasks, decomposing them, and assigning subtasks to available slaver nodes.
+### 1️⃣ Start the Master Agent
+The **master** is responsible for receiving tasks, decomposing them, and assigning subtasks to available slaver agents.
 
 ```bash
 cd master
 
 python run.py
 ```
->⚠️ You must start the master node first, otherwise the slaver will fail to register.
+>⚠️ You must start the master agent first, otherwise the slaver will fail to register.
 
-### 2️⃣ Start the Slaver Node
+### 2️⃣ Start the Slaver Agent
 The **slaver** connects to the master and executes the assigned subtasks on the physical robot.
 
 ```bash
 cd slaver
 python run.py
 ```
-You can run multiple slaver nodes on different robots or terminals, each connected to the same master.
+You can run multiple slaver agents on different robots or terminals, each connected to the same master.
 
 ### 📤 Sending Tasks Manually
-After starting both the **master** and **slaver** nodes, you can send tasks in either of the following ways:
+After starting both the **master** and **slaver** agents, you can send tasks in either of the following ways:
 
 #### ✅ Option 1: Use Python Script (Direct HTTP Request)
 ```bash
 import requests
 
-# Replace with your master node's actual IP or hostname
+# Replace with your master agent's actual IP or hostname
 MASTER_URL = "http://localhost:5000/publish_task"
 
 payload = {
@@ -212,12 +207,12 @@ You’ll then be guided through several steps:
 
 Here you can customize and inspect advanced configurations before starting the deployment:
 
-1. **Master Node Configuration:**
+1. **Master Agent Configuration:**
   <div align="center">
   <img src="./assets/deploy_master_0.png">
   </div>
 
-2. **Slaver Node Configuration:**
+2. **Slaver Agent Configuration:**
   <div align="center">
   <img src="./assets/deploy_slaver_0.png">
   </div>
@@ -253,7 +248,7 @@ Example:
   ```
 
 #### ⚙️ Step 3: Task Decomposition and Execution Results
-The master node will automatically decompose the task into subtasks and assign them to the
+The master agent will automatically decompose the task into subtasks and assign them to the
   <div align="center">
   <img src="./assets/master_subtask.png">
   </div>
