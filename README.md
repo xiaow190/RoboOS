@@ -27,16 +27,11 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 <img src="./assets/overview2.png", width="600" />
 </div>
 
-### Structure for RoboOS 1.0
-<div align="center">
-<img src="./assets/overview.png" />
-</div>
-
 
 ## <a id="RoadMap"> 🎯 RoadMap</a>
 - [x] Release **RoboOS-1.0** version
 - [x] Release **[Technical Report](https://arxiv.org/abs/2505.03673)** of RoboOS.
-- [ ] Release **RoboOS-2.0** version *(by the end of this month)*
+- [x] Release **RoboOS-2.0 stand-alone** s version 
 - [ ] Release friendly and detailed **User Guide Manual**​.
 - [ ] Release more comprehensive multi-agent collaboration **DEMOs** based on RoboOS​.
 
@@ -46,7 +41,7 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 Due to the substantial code refactoring and engineering efforts required, we'll need to postpone the release by *several days*. We appreciate your patience as we ensure the highest quality standards.
 
 
-## <a id="Manual"> ⭐️ Simple Guide Manual (Only for RoboOS-1.0)</a>
+## <a id="Manual"> ⭐️ Simple Guide Manual (for RoboOS-2.0 stand-alone)</a>
 
 ### 1. Prerequisites
 
@@ -70,10 +65,9 @@ docker run -itd \
   --shm-size=500g \
   --name agent \
   --hostname flagscale-agent \
-  -v /home/flagscale_cicd/workspace/data/model/BAAI/RoboBrain2.0-7B:/workspace/model/BAAI/RoboBrain2.0-7B \
+  -v {your_local_path}/BAAI/RoboBrain2.0-7B \
   -w /workspace/RoboOS \
   flagscale-agent:RoboOS
-
 ```
 
 #### 2.3 Open the Deployment Web Page
@@ -122,7 +116,7 @@ git clone https://github.com/FlagOpen/RoboSkill
 Example: slaver/demo_robot_local/skill.py
 ```
 
-#### 🌐 远程 HTTP 模式（Remote）
+#### 🌐 Remote HTTP Mode
 1. Host the `skill.py` file on a remote server accessible over the network (Robot)
 2. Start the skill server:
 ```bash
@@ -132,6 +126,58 @@ python skill.py
 Visit the web UI at http://127.0.0.1:8888 and follow the on-screen instructions to complete configuration.
 Once finished, you can control the robot and trigger skills from the interface.
 
+## 🔧 Manual Deployment (Advanced)
+If you prefer to manually run RoboOS without using the deployment web UI, follow the steps below to start the system components directly from source.
+
+### 1️⃣ Start the Master Node
+The **master** is responsible for receiving tasks, decomposing them, and assigning subtasks to available slaver nodes.
+
+```bash
+cd master
+
+python run.py
+```
+>⚠️ You must start the master node first, otherwise the slaver will fail to register.
+
+### 2️⃣ Start the Slaver Node
+The **slaver** connects to the master and executes the assigned subtasks on the physical robot.
+
+```bash
+cd slaver
+python run.py
+```
+You can run multiple slaver nodes on different robots or terminals, each connected to the same master.
+
+### 📤 Sending Tasks Manually
+After starting both the **master** and **slaver** nodes, you can send tasks in either of the following ways:
+
+#### ✅ Option 1: Use Python Script (Direct HTTP Request)
+```bash
+import requests
+
+# Replace with your master node's actual IP or hostname
+MASTER_URL = "http://localhost:5000/publish_task"
+
+payload = {
+    "task": "Now you are at the kitchen table, pick up the apple from the kitchen table, navigate to the serving table, place the apple on the serving table, pick up the bowl from the serving table, navigate to the kitchen table, place the bowl on the kitchen table."
+}
+
+response = requests.post(MASTER_URL, json=payload)
+
+print("Status:", response.status_code)
+print("Response:", response.json())
+
+```
+> Make sure the master service is running and accessible on port 5000.
+
+#### ✅ Option 2: Use the Release Deployment Web Interface
+You can also start the deployment service and access a simple web-based task submission interface:
+```bash
+cd deploy
+python run.py
+
+# Then visit: http://127.0.0.1:8888/release
+```
 
 ## ✨ Example Demo
 
@@ -212,6 +258,7 @@ The master node will automatically decompose the task into subtasks and assign t
   <img src="./assets/master_subtask.png">
   </div>
   
+#### 
 
 ## <a id="Citation"> 📑 Citation</a> 
 If you find this project useful, welcome to cite us.
