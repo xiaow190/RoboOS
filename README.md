@@ -60,7 +60,9 @@ docker run -itd \
   --shm-size=500g \
   --name agent \
   --hostname flagscale-agent \
-  -v {your_local_path}/BAAI/RoboBrain2.0-7B \
+  -v {your_local_path}/BAAI/RoboBrain2.0-7B  \
+  --network=host \
+  -p 8888:8888 \ 
   -w /workspace/RoboOS \
   flagscale-agent:RoboOS
 ```
