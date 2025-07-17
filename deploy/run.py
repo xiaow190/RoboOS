@@ -94,6 +94,10 @@ def saveconfig():
         with open(file_path, "r", encoding="utf-8") as f:
             yaml_data = yaml.load(f)
 
+        model_dict = config_data.get("model", {}).get("model_dict", {})
+        for key in ["model_select", "model_retry_planning"]:
+            config_data["model"][key] = model_dict.pop(key)
+
         processed_config = split_dot_keys(config_data)
 
         print(processed_config)
