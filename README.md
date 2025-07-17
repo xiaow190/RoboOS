@@ -48,7 +48,7 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 #### 2.1 Pull the Docker Image
 
 ```bash
-docker pull flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale-agent
+docker pull flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale_agent_RoboOS_v2.0
 ```
 
 #### 2.2 Start the Docker Container
@@ -56,15 +56,15 @@ docker pull flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrele
 # You may choose to mount the RoboBrain model into the container:
 
 docker run -itd \
-  --gpus all \
-  --shm-size=500g \
-  --name agent \
-  --hostname flagscale-agent \
-  -v {your_local_path}/BAAI/RoboBrain2.0-7B  \
-  --network=host \
-  -p 8888:8888 \ 
-  -w /workspace/RoboOS \
-  flagscale-agent:RoboOS
+    --gpus all \
+    --shm-size=500g \
+    --name agent \
+    --hostname flagscale-agent \
+    -v {your_local_path}/BAAI/RoboBrain2.0-7B:/path/in/container \
+    --network=host \
+    -p 8888:8888 \
+    -w /workspace/RoboOS \
+    flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale_agent_RoboOS_v2.0
 ```
 
 #### 2.3 Open the Deployment Web Page
