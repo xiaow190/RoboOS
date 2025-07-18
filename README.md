@@ -86,6 +86,14 @@ cd RoboOS
 # It is recommended to use a virtual environment:
 
 pip install -r requirements.txt
+
+# Install flag_scale from GitHub
+
+git clone https://github.com/FlagOpen/FlagScale 
+cd FlagScale
+
+# Install in editable mode with PYTHONPATH
+PYTHONPATH=./:$PYTHONPATH pip install . --verbose --no-build-isolation 
 ```
 
 #### 3.3 Start the Deployment Service
