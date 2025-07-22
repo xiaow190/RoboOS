@@ -45,10 +45,8 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 - pip package manager
 
 ### 🎥 Deployment Video Tutorial
-<video width="100%" controls>
-  <source src="https://flagopen.github.io/RoboOS/assets/Deployment.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+> 👉 [Click here to watch the deployment tutorial](https://flagopen.github.io/RoboOS/assets/Deployment.mp4) *(Recommended before getting started)*
+
 
 ### 🚀 2. Deployment Methods
 Two deployment options are available based on your needs:
