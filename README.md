@@ -44,14 +44,21 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
 - Redis server
 - pip package manager
 
-### 🚀 2. Deployment Method One: Using Docker Image (Recommended)
-#### 2.1 Pull the Docker Image
+### 🎥 Deployment Video Tutorial
+> 👉 [Click here to watch the deployment tutorial](https://github.com/FlagOpen/RoboOS/blob/web/assets/Deployment.mp4) *(Recommended before getting started)*
 
+### 🚀 2. Deployment Methods
+Two deployment options are available based on your needs:
+
+#### 🐳 2.1 Method One: Docker Deployment (Recommended)
+Recommended for quick setup and production environments.
+
+##### 2.1.1 Pull the Docker Image
 ```bash
 docker pull flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale_agent_RoboOS_v2.0
 ```
 
-#### 2.2 Start the Docker Container
+##### 2.1.3 Open the Deployment Web Page
 ```bash
 # You may choose to mount the RoboBrain model into the container:
 
@@ -67,20 +74,21 @@ docker run -itd \
     flagrelease-registry.cn-beijing.cr.aliyuncs.com/flagrelease/flagrelease:flagscale_agent_RoboOS_v2.0
 ```
 
-#### 2.3 Open the Deployment Web Page
+##### 2.3 Open the Deployment Web Page
 ```cpp
 http://127.0.0.1:8888
 ```
 
-### 🧩 3. Deployment Method Two: Run from Source (For Development/Customization)
+#### 2.2 Method Two: Run from Source (For Development or Customization)
+Recommended for local development, debugging, or feature extension.
 
-#### 3.1 Clone the Repository (stand-alone branch)
+##### 2.2.1 Clone the Repository
 ```bash
 git clone -b stand-alone https://github.com/FlagOpen/RoboOS.git
 cd RoboOS
 ```
 
-#### 3.2 Install Dependencies
+##### 2.2.2 Install Dependencies
 
 ```bash
 # It is recommended to use a virtual environment:
@@ -97,19 +105,23 @@ git checkout a0687db035ba1d9c7b2661d8142ee4e8348b1459
 PYTHONPATH=./:$PYTHONPATH pip install . --verbose --no-build-isolation 
 ```
 
-#### 3.3 Start the Deployment Service
+##### 2.2.3 Start the Deployment Service
 ```bash
 cd deploy
 
 python run.py
 ```
-#### 3.4 Open the Deployment Web Page
+##### 2.2.4 Open the Deployment Web Page
 ```cpp
 http://127.0.0.1:8888
 ```
 
-### ⚙️ 4. Skill Store Configuration
-> Two skill access modes are supported and can be selected on the web deployment page:
+### ⚙️ 3. Skill Store Configuration
+RoboOS supports two modes for accessing robot skills: **Local Mode** and **Remote Mode.**
+For detailed instructions on configuring specific robot skills (e.g., Realman RMC-LA), please refer to the dedicated documentation below:
+
+>📘 [Realman RMC-LA Skill README](https://github.com/FlagOpen/RoboSkill/blob/main/realman/RMC-LA/README.md)
+>Includes setup instructions, example skills, and integration guide for Realman robots.
 
 #### ✅ Local Mode
 1. Clone the RoboSkill repository:
@@ -128,7 +140,8 @@ Example: slaver/demo_robot_local/skill.py
 ```bash
 python skill.py
 ```
-### ✅ 5. Final Step
+
+### ✅ 4. Final Step
 Visit the web UI at http://127.0.0.1:8888 and follow the on-screen instructions to complete configuration.
 Once finished, you can control the robot and trigger skills from the interface.
 
