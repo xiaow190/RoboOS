@@ -50,7 +50,6 @@ Extensive real-world experiments across diverse scenarios (e.g., restaurant, hou
   Your browser does not support the video tag.
 </video>
 
-
 ### 🚀 2. Deployment Methods
 Two deployment options are available based on your needs:
 
