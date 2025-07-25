@@ -307,11 +307,19 @@ class OpenAIServerModel(Model):
         stop_sequences: Optional[List[str]] = None,
         tools_to_call_from: Optional[List[str]] = None,
     ) -> ChatMessage:
-        content = task
+
+        content = (
+            "Rules:\n"
+            "- Only call a tool IF AND ONLY IF the action is required by the task AND has NOT already been completed.\n"
+            "- Do NOT call the same tool multiple times for the same object/location.\n"
+            "- Do NOT make assumptions beyond the task description.\n\n"
+        )
+
+        content += f"Task: {task}\n\n"
         if len(current_status) > 0:
-            content += "\n Current Status: "
+            content += "Completed Actions:\n"
             for current_short_statu in current_status:
-                content += f"{current_short_statu} "
+                content += f"- {current_short_statu}\n"
         completion_kwargs = {
             "messages": [{"role": "user", "content": content}],
             "model": model_path,

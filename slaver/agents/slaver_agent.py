@@ -195,4 +195,11 @@ class ToolCallingAgent(MultiStepAgent):
         else:
             return "final_answer"
 
+        current_call = {"tool_name": tool_name, "tool_arguments": tool_arguments}
+
+        if self.tool_call and self.tool_call[-1] == current_call:
+            return "final_answer"
+        else:
+            self.tool_call.append(current_call)
+
         return await self._execute_tool_call(tool_name, tool_arguments, memory_step)
