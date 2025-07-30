@@ -22,6 +22,8 @@ class GlobalAgent:
 
         self.logger.info(f"Configuration loaded from {config_path} ...")
         self.logger.info(f"Master Configuration:\n{self.config}")
+
+        self._init_scene(self.config["profile"])
         self._start_listener()
 
     def _init_logger(self, logger_config):
@@ -53,6 +55,16 @@ class GlobalAgent:
         """Initialize configuration"""
         with open(config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
+
+    def _init_scene(self, scene_config):
+        """Initialize scene object"""
+        path = scene_config["path"]
+        if not os.path.exists(path):
+            self.logger.error(f"Scene config file {path} does not exist.")
+            raise FileNotFoundError(f"Scene config file {path} not found.")
+        with open(path, "r", encoding="utf-8") as f:
+            self.scene = yaml.safe_load(f)
+        self.collaborator.store_scene(self.scene["scene"])
 
     def _handle_register(self, robot_name: Dict) -> None:
         """Listen for robot registrations."""

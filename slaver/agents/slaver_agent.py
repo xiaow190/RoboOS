@@ -5,6 +5,7 @@ import time
 from logging import getLogger
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from agents.memory import get_action_type_prompt, scene_update_from_action
 from agents.models import ChatMessage
 from flag_scale.flagscale.agent.collaboration import Collaborator
 from mcp import ClientSession
@@ -160,7 +161,37 @@ class ToolCallingAgent(MultiStepAgent):
             f"Observations: {observation.replace('[', '|')}",  # escape potential rich-tag-like components
             level=LogLevel.INFO,
         )
+
+        # Construct memory input
+        memory_input = {
+            "tool_name": tool_name,
+            "arguments": tool_arguments,
+            "result": observation,
+        }
+        try:
+            await self.memory_predict(memory_input)
+        except Exception as e:
+            print(f"[Scene Update Error] `{e}`")
+
         return observation
+
+    async def memory_predict(self, memory_input: dict) -> str:
+        """
+        Use the model to predict the scene-level effect of the current tool execution.
+        Possible effects: add_object, remove_object, move_object, position.
+        """
+
+        prompt = get_action_type_prompt(memory_input)
+
+        model_message: ChatMessage = self.model(
+            task=prompt, current_status="", model_path=self.model_path
+        )
+
+        action_type = model_message.content.strip().lower()
+
+        scene_update_from_action(
+            self.collaborator, action_type, json.loads(memory_input["arguments"])
+        )
 
     async def step(self, memory_step: ActionStep) -> Union[None, Any]:
         """
