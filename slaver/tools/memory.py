@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-
 from dataclasses import asdict, dataclass
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict, Union
@@ -187,12 +186,9 @@ class AgentMemory:
                 )
 
 
-
 class SceneMemory:
-
     def __init__(self, collaborator):
         self.collaborator = collaborator
-
 
     def add_object(self, target: str):
         robot_info = self.collaborator.read_environment("robot")
@@ -221,7 +217,6 @@ class SceneMemory:
 
         self.collaborator.record_environment("robot", json.dumps(robot_info))
         self.collaborator.record_environment(position, json.dumps(scene_obj))
-
 
     def remove_object(self, target: str):
         robot_info = self.collaborator.read_environment("robot")
@@ -264,7 +259,7 @@ class SceneMemory:
         """
         print(f"[Scene Update] Applying `{action_type}` with args {args}")
         try:
-            if  "remove_object" in action_type:
+            if "remove_object" in action_type:
                 target = args.get("object")
                 if target:
                     self.remove_object(target)
@@ -278,7 +273,7 @@ class SceneMemory:
                 else:
                     print("[Scene Update] Missing `object` for add_object")
 
-            elif "position" in  action_type:
+            elif "position" in action_type:
                 target = args.get("target")
                 if target:
                     self.move_to(target)
@@ -316,5 +311,6 @@ Answer strictly with one of the following:
 
 Answer with only one action type from the list above. Do not include any explanation.
 """
+
 
 __all__ = ["AgentMemory", "SceneMemory"]

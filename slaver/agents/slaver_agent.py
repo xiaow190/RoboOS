@@ -189,9 +189,7 @@ class ToolCallingAgent(MultiStepAgent):
 
         action_type = model_message.content.strip().lower()
 
-        self.scene.apply_action(
-            action_type, json.loads(memory_input["arguments"])
-        )
+        self.scene.apply_action(action_type, json.loads(memory_input["arguments"]))
 
     async def step(self, memory_step: ActionStep) -> Union[None, Any]:
         """
