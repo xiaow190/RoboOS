@@ -73,4 +73,4 @@ profiling: true
 
 # scene profile
 profile:
-  path: ./scene_profile.yaml
+  path: ./scene/profile.yaml

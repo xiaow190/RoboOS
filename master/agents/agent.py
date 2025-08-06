@@ -64,7 +64,14 @@ class GlobalAgent:
             raise FileNotFoundError(f"Scene config file {path} not found.")
         with open(path, "r", encoding="utf-8") as f:
             self.scene = yaml.safe_load(f)
-        self.collaborator.store_scene(self.scene["scene"])
+
+        scenes = self.scene.get("scene", [])
+        for scene_info in scenes:
+            scene_name = scene_info.pop("name", None)
+            if scene_name:
+                self.collaborator.record_environment(scene_name, json.dumps(scene_info))
+            else:
+                print("Warning: Missing 'name' in scene_info:", scene_info)
 
     def _handle_register(self, robot_name: Dict) -> None:
         """Listen for robot registrations."""

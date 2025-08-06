@@ -5,13 +5,12 @@ import time
 from logging import getLogger
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from agents.memory import get_action_type_prompt, scene_update_from_action
 from agents.models import ChatMessage
 from flag_scale.flagscale.agent.collaboration import Collaborator
 from mcp import ClientSession
 from rich.panel import Panel
 from rich.text import Text
-from tools.memory import ActionStep, AgentMemory
+from tools.memory import ActionStep, AgentMemory, SceneMemory
 from tools.monitoring import AgentLogger, LogLevel, Monitor
 
 logger = getLogger(__name__)
@@ -52,6 +51,7 @@ class MultiStepAgent:
         self.step_number = 0
         self.state = {}
         self.memory = AgentMemory()
+        self.scene = SceneMemory(collaborator)
         self.logger = AgentLogger(level=verbosity_level, log_file=log_file)
         self.monitor = Monitor(self.model, self.logger)
         self.step_callbacks = step_callbacks if step_callbacks is not None else []
@@ -181,7 +181,7 @@ class ToolCallingAgent(MultiStepAgent):
         Possible effects: add_object, remove_object, move_object, position.
         """
 
-        prompt = get_action_type_prompt(memory_input)
+        prompt = self.scene.get_action_type_prompt(memory_input)
 
         model_message: ChatMessage = self.model(
             task=prompt, current_status="", model_path=self.model_path
@@ -189,8 +189,8 @@ class ToolCallingAgent(MultiStepAgent):
 
         action_type = model_message.content.strip().lower()
 
-        scene_update_from_action(
-            self.collaborator, action_type, json.loads(memory_input["arguments"])
+        self.scene.apply_action(
+            action_type, json.loads(memory_input["arguments"])
         )
 
     async def step(self, memory_step: ActionStep) -> Union[None, Any]:
