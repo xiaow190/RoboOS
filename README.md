@@ -106,7 +106,7 @@ pip install -r requirements.txt
 
 git clone https://github.com/FlagOpen/FlagScale 
 cd FlagScale
-git checkout a0687db035ba1d9c7b2661d8142ee4e8348b1459
+git checkout 3fc2037f90917227bd4aebabd9d7b330523f437c
 
 # Install in editable mode with PYTHONPATH
 PYTHONPATH=./:$PYTHONPATH pip install . --verbose --no-build-isolation 
