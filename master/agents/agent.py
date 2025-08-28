@@ -75,7 +75,7 @@ class GlobalAgent:
 
     def _handle_register(self, robot_name: Dict) -> None:
         """Listen for robot registrations."""
-        robot_info = self.collaborator.retrieve_agent(robot_name)
+        robot_info = self.collaborator.read_agent_info(robot_name)
         self.logger.info(
             f"AGENT_REGISTRATION: {robot_name} \n {json.dumps(robot_info)}"
         )
@@ -189,8 +189,8 @@ class GlobalAgent:
                 if isinstance(subtask, dict) and "robot_name" in subtask
             }
 
-            # Retrieve list of all registered robots from the collaborator
-            robots_list = set(self.collaborator.retrieve_all_agents_name())
+            # Read list of all registered robots from the collaborator
+            robots_list = set(self.collaborator.read_all_agents_name())
 
             # Check if all workers are registered
             return worker_list.issubset(robots_list)

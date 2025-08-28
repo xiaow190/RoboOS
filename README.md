@@ -74,7 +74,7 @@ docker run -itd \
     --shm-size=500g \
     --name agent \
     --hostname flagscale-agent \
-    -v {your_local_path}/BAAI/RoboBrain2.0-7B:/path/in/container \
+    -v {your_local_path}/BAAI/RoboBrain2.0-7B:/workspace/RoboBrain2.0-7B \
     --network=host \
     -p 8888:8888 \
     -w /workspace/RoboOS \
@@ -151,6 +151,116 @@ python skill.py
 ### ✅ 4. Final Step
 Visit the web UI at http://127.0.0.1:8888 and follow the on-screen instructions to complete configuration.
 Once finished, you can control the robot and trigger skills from the interface.
+
+
+##### ⚡️ 5. Start vLLM Model Service
+
+RoboOS requires a large language model backend to handle reasoning and tool calls.  
+We recommend using **vLLM** to serve the [RoboBrain2.0-7B](https://www.modelscope.cn/models/BAAI/RoboBrain2.0-7B/summary) model.
+
+
+#### 5.1 Install vLLM
+
+```bash
+pip install vllm
+```
+
+#### 5.2 Prepare Chat Template
+The tool_chat_template_hermes.jinja file must be provided for tool-call parsing.
+Place it in the following directory:
+
+```arduino
+RoboOS/deploy/templates/tool_chat_template_hermes.jinja
+```
+#### 5.3 Launch vLLM
+Run the following command to start the model service:
+
+```bash
+vllm serve RoboBrain2.0-7B \
+    --gpu-memory-utilization=0.9 \
+    --max-model-len=10000 \
+    --max-num-seqs=256 \
+    --port=4567 \
+    --trust-remote-code \
+    --enable-chunked-prefill \
+    --enable-auto-tool-choice \
+    --tool-call-parser hermes \
+    --chat-template RoboOS/deploy/templates/tool_chat_template_hermes.jinja 
+```
+
+### ⚙️ 6. Master & Slaver Configuration
+Before running the system, you need to configure both the **master** and **slaver** agents.  
+Each agent requires a `config.yaml` file to define model connection, audio, and logging settings.
+
+#### 6.1 Configuration Files
+- `master/config.yaml`
+- `slaver/config.yaml`
+
+A default template is provided below (you may adjust according to your environment):
+
+```yaml
+
+
+# Cloud Server (vLLM) Model Parameters
+model:
+  model_select: "/workspace/model/BAAI/RoboBrain2.0-7B"
+  model_retry_planning: 5
+  model_dict:
+    cloud_model: "/workspace/model/BAAI/RoboBrain2.0-7B"
+    cloud_type: "default"
+    cloud_api_key: "EMPTY"
+    cloud_server: "http://localhost:4567/v1/"
+    max_chat_message: 50
+
+# Redis Collaborator
+collaborator:
+  host: "127.0.0.1"
+  port: 6379
+  db: 0
+  clear: true
+  password: ""
+
+# Slaver Robot 
+robot:
+  # "local" with a fold name such as "demo_robot"
+  # "remote" with URL such as "http://127.0.0.1:8000", and run the Python script 'skill.py' on the robot itself.
+  # call_type: local
+  # path: "demo_robot_local"
+  name: demo_robot
+  call_type: remote
+  path: "http://127.0.0.1:8000"
+
+# Master Scene profile
+profile:
+  path: ./scene/profile.yaml
+
+# Slaver
+tool:
+  # Has the model undergone targeted training on tool_calls
+  support_tool_calls: false
+
+```
+
+
+#### 6.2 Key Parameters
+
++ model.cloud_server:
+Must point to your vLLM service (default: http://localhost:4567/v1/)
+
++ collaborator:
+Redis server configuration (default: 127.0.0.1:6379)
+
++ profile：
+Path to the scene profile YAML file that defines environment and task settings (e.g., ./scene/profile.yaml)
+
++ tool：
+Enable or disable tool-call support. Set `support_tool_calls: true` if your model has been trained for tool calls
++ robot:
+Two modes of calling robot tools
+
+
+⚠️ Make sure these fields are correctly configured; otherwise, RoboOS may fail to connect to vLLM, Redis, or load scene/tool profiles.
+
 
 ## 🔧 Manual Deployment (Advanced)
 If you prefer to manually run RoboOS without using the deployment web UI, follow the steps below to start the system components directly from source.
